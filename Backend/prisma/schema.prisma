@@ -23,6 +23,7 @@ model User{
   id Int @id @default(autoincrement())
   firstname String
   lastname String
+  username String @unique
   email String? @unique
   phoneNumber BigInt @unique
   gender Gender?
