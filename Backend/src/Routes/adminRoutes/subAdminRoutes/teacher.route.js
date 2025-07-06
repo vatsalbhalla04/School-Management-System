@@ -5,7 +5,7 @@ teacherRoute.post("/",(req,res)=>{
 
 });
 
-teacherRoute.update("/:id",(req,res)=>{
+teacherRoute.put("/:id",(req,res)=>{
 
 });
 
