@@ -1,11 +1,21 @@
-function TryCatch(passedFun) { // passedFun is the higher order function
-    return async (req, res, next) => {
-      try {
-        await passedFun(req, res, next);
-      } catch (error) {
-        next(error);
-      }
-    };
-  }
+function TryCatch(passedFun) {
+  return async (req, res, next) => {
+    try {
+      await passedFun(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  };
+}
 
-export default TryCatch; 
+function errorMiddleware(err, req, res, next) {
+  const statusCode = err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+
+  return res.status(statusCode).json({
+    success: false,
+    message,
+  });
+}
+
+export { TryCatch, errorMiddleware };
