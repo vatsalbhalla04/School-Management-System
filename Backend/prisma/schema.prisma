@@ -27,7 +27,7 @@ model User{
   email String? @unique
   phoneNumber BigInt? @unique
   gender Gender?
-  password String
+  password String 
   role     Role 
   secretKey String? @unique
   createdAt DateTime @default(now())

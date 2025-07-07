@@ -5,7 +5,7 @@ const cookieOption = {
     sameSite: "strict"
 }; 
 
-export default cookieOption
+export  {cookieOption}
 
 // function sendToken(res,user,code,message){
 //     const token = jwt.sign({_id:user._id},JWT_SECERET); 

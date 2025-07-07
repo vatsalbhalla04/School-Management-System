@@ -3,7 +3,7 @@ import { ErrorHandler } from "../utils/utility.js";
 import jwt from 'jsonwebtoken';
 
 export default function adminMiddleware(req,res,next){
-    const token = req.cookies["admin-token"]; 
+    const token = req.cookies["ADMIN-token"]; 
 
     if (!token) return next(new ErrorHandler("Access Denied"),401); 
     

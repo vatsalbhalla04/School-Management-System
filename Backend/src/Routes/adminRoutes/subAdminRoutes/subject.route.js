@@ -1,9 +1,9 @@
 import { Router } from "express";
 const subjectRoute = Router(); 
 
-subjectRoute.post("/",(req,res)=>{
+subjectRoute.post("/add",(req,res)=>{
 
-}); 
+});
 
 subjectRoute.put("/:id",(req,res)=>{
 
