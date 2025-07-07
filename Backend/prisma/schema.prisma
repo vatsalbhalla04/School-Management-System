@@ -25,16 +25,16 @@ model User{
   lastname String
   username String @unique
   email String? @unique
-  phoneNumber BigInt @unique
+  phoneNumber BigInt? @unique
   gender Gender?
   password String
   role     Role 
+  secretKey String? @unique
   createdAt DateTime @default(now())
 
   // Relations
   student Student?
   teacher Teacher?
-
 }
 
 model Student{

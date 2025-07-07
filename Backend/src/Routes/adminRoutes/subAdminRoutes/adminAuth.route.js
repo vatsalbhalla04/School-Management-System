@@ -9,29 +9,36 @@ const adminAuth = Router();
 
 adminAuth.post("/login",TryCatch(async (req, res, next) => {
 
-    const { secretKey, username, password } = req.body;
+    const {username, password } = req.body;
 
-    if (
-        secretKey !== adminSecretKey ||
-        username !== adminUsername ||
-        password !== adminPassword
-      )
+    if (username !== adminUsername || password !== adminPassword)
         return next(new ErrorHandler("Invalid Credentials", 401));      
 
-    const token = jwt.sign({ role: "ADMIN" }, JWT_SECRET);
-
-    return res
-      .status(200)
-      .cookie("admin-token", token, {
-        ...cookieOption,
-        maxAge: 1000 * 60 * 60 * 3,
-      })
-      .json({
-        success: true,
-        message: "Welcome Boss",
-      });
+   res.status(200).json({
+    message: "Verfied Credentials"
+   })
   })
 );
+
+adminAuth.post("/secretKey",TryCatch(async(req,res,next)=>{
+  const {secretKey} = req.body; 
+
+  if(secretKey !== adminSecretKey) return next(new ErrorHandler("Invalid Secret Key")); 
+
+  const token = jwt.sign({ role: "ADMIN" }, JWT_SECRET);
+
+  return res
+    .status(200)
+    .cookie("admin-token", token, {
+      ...cookieOption,
+      maxAge: 1000 * 60 * 60 * 3,
+    })
+    .json({
+      success: true,
+      message: "Welcome Boss",
+      token : token
+    });
+}))
 
 adminAuth.post("/logout",TryCatch(async (req, res, next) => {
     return res
@@ -46,5 +53,13 @@ adminAuth.post("/logout",TryCatch(async (req, res, next) => {
       });
   })
 );
+
+adminAuth.get("/profile",TryCatch(async (req,res,next)=>{
+    res.status(200).json({
+      message : "Admin Profile",
+      Admin_Username : adminUsername,
+      Admin_Password: adminPassword
+    })
+}))
 
 export default adminAuth;
