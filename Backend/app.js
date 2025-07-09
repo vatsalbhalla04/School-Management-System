@@ -11,11 +11,18 @@ import adminMiddleware from "./src/middleware/adminMiddleware.js";
 dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET;
 
-app.use(cors()); 
+BigInt.prototype.toJSON = function () {
+    return this.toString();
+  };
+
+app.use(cors({
+    credentials: true
+})); 
 app.use(express.json()); 
 app.use(cookieParser())
 app.use('/api/v1/auth',authRoute);
 app.use('/api/v1/admin',adminMiddleware,adminRoute); 
+// app.use('/api/v1/admin',adminRoute); 
 app.use(errorMiddleware)
 
 app.listen(3000,()=>{

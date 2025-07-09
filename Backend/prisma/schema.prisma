@@ -1,6 +1,6 @@
+
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -9,102 +9,102 @@ datasource db {
 }
 
 enum Role{
-  ADMIN
-  TEACHER 
-  STUDENT
+ADMIN
+TEACHER
+STUDENT
 }
 
 enum Gender{
-  MALE
-  FEMALE
+MALE
+FEMALE
 }
 
 model User{
-  id Int @id @default(autoincrement())
-  firstname String
-  lastname String
-  username String @unique
-  email String? @unique
-  phoneNumber BigInt? @unique
-  gender Gender?
-  password String 
-  role     Role 
-  secretKey String? @unique
-  createdAt DateTime @default(now())
+id Int @id @default(autoincrement())
+firstname String
+lastname String
+username String @unique
+email String? @unique
+phoneNumber BigInt? @unique
+gender Gender?
+password String
+role Role
+secretKey String? @unique
+createdAt DateTime @default(now())
 
-  // Relations
-  student Student?
-  teacher Teacher?
+// Relations
+student Student?
+teacher Teacher?
 }
 
 model Student{
-  id String @id @default(cuid())
-  studentId Int @unique
-  student User @relation(fields: [studentId], references: [id])
+id String @id @default(cuid())
+studentId Int @unique
+student User @relation(fields: [studentId], references: [id])
 
-  sectionId Int
-  section Section @relation(fields: [sectionId],references: [id])
-  // sectionId is the FK pointing to Section.id
-  
-  mark Mark[]
+sectionId Int
+section Section @relation(fields: [sectionId],references: [id])
+// sectionId is the FK pointing to Section.id
+
+mark Mark[]
 }
 
 model Teacher{
-  id String @id @default(cuid())
-  teacherId Int @unique
-  teacher User @relation(fields: [teacherId],references: [id])
+id String @id @default(cuid())
+teacherId Int @unique
+teacher User @relation(fields: [teacherId],references: [id])
 
-  subjects Subject[]
+subjects Subject[]
 }
 
 model Standard{
-  id Int @id @default(autoincrement())
-  StdName String // e.g., "10th", "12th"
+id Int @id @default(autoincrement())
+StdName String // e.g., "10th", "12th"
 
-  section Section[]
+section Section[]
 }
 
 model Section {
-  id Int @id @default(autoincrement())
-  SecName String
-  standardId Int
-  standard Standard @relation(fields: [standardId],references: [id])
+id Int @id @default(autoincrement())
+SecName String
+standardId Int
+standard Standard @relation(fields: [standardId],references: [id])
 
-  students Student[]
+students Student[]
 }
 
 model Subject{
-  id Int @id @default(autoincrement())
-  name String // e.g., "Math", "Science"
-  teacherId String
-  teacher Teacher @relation(fields: [teacherId],references: [id])
+id Int @id @default(autoincrement())
+name String // e.g., "Math", "Science"
+teacherId String
+teacher Teacher @relation(fields: [teacherId],references: [id])
 
-  marks Mark[]
+marks Mark[]
 }
 
 enum ExamType {
-  TERM1
-  TERM2
-  FINAL
+TERM1
+TERM2
+FINAL
 }
 
 model Mark{
-  id Int @id @default(autoincrement())
-  studentId String 
-  subjectId Int 
-  score Float
-  examType ExamType
-  updatedAt DateTime @updatedAt @default(now())
+id Int @id @default(autoincrement())
+studentId String
+subjectId Int
+score Float
+examType ExamType
+updatedAt DateTime @updatedAt @default(now())
 
-  student Student @relation(fields: [studentId],references: [id])
-  subject Subject @relation(fields: [subjectId],references: [id])
+student Student @relation(fields: [studentId],references: [id])
+subject Subject @relation(fields: [subjectId],references: [id])
 
-  @@unique([studentId,subjectId,examType]) // Ensures one mark per subject per exam per student this called composite unique constraint
+@@unique([studentId,subjectId,examType]) // Ensures one mark per subject per exam per student this called composite unique constraint
 
 
-  // Indexes to make queries fast
-  @@index([studentId, examType]) // for student marks page
-  @@index([subjectId, examType]) // for teacher dashboard
-  @@index([studentId]) // for listing all marks of a student
+// Indexes to make queries fast
+@@index([studentId, examType]) // for student marks page
+@@index([subjectId, examType]) // for teacher dashboard
+@@index([studentId]) // for listing all marks of a student
 
 }

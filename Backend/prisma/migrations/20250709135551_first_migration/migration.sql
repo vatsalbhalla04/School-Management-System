@@ -12,11 +12,13 @@ CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
     "firstname" TEXT NOT NULL,
     "lastname" TEXT NOT NULL,
+    "username" TEXT NOT NULL,
     "email" TEXT,
-    "phoneNumber" BIGINT NOT NULL,
+    "phoneNumber" BIGINT,
     "gender" "Gender",
     "password" TEXT NOT NULL,
     "role" "Role" NOT NULL,
+    "secretKey" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
@@ -78,10 +80,16 @@ CREATE TABLE "Mark" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_phoneNumber_key" ON "User"("phoneNumber");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_secretKey_key" ON "User"("secretKey");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Student_studentId_key" ON "Student"("studentId");

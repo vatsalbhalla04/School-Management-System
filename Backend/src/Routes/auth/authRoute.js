@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { TryCatch } from "../../middleware/error";
-import { PrismaClient } from "@prisma/client";
-import { ErrorHandler } from "../../utils/utility";
+import { TryCatch } from "../../middleware/error.js";
+import { ErrorHandler } from "../../utils/utility.js";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../../../app";
-import { cookieOption } from "../../utils/feature";
+import pkg from "@prisma/client";
+import { JWT_SECRET } from "../../../app.js";
+import { cookieOption } from "../../utils/feature.js";
+import argon2 from "argon2";
+
+const { PrismaClient } = pkg;
 
 const authRoute = Router();
 
@@ -18,8 +21,13 @@ authRoute.post(
     const user = await prisma.user.findUnique({
       where: { username },
     });
-
+    
     if (!user) {
+      return next(new ErrorHandler("Invalid Credentials", 401));
+    }
+
+    const isPasswordMatched = await argon2.verify(user.password, password);
+    if (!isPasswordMatched) {
       return next(new ErrorHandler("Invalid Credentials", 401));
     }
 
@@ -89,6 +97,7 @@ authRoute.post(
         success: true,
         message: `Welcome ${user.role}, ${user.firstname}`,
         username: user.username,
+        token: token
       });
   })
 );
