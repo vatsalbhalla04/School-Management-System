@@ -104,7 +104,7 @@ authRoute.post(
 
 authRoute.post(
   "/logout",
-  TryCatch(async (req, res) => {
+  TryCatch(async (req, res,next) => {
     const tokens = ["ADMIN-token", "TEACHER-token", "STUDENT-token"];
     let foundToken = false;
 
