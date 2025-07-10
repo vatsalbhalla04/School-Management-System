@@ -1,4 +1,4 @@
-function TryCatch(passedFun) {
+function TryCatch(passedFun) { // higher Order Function
   return async (req, res, next) => {
     try {
       await passedFun(req, res, next);
@@ -7,8 +7,14 @@ function TryCatch(passedFun) {
     }
   };
 }
-
 function errorMiddleware(err, req, res, next) {
+  if (err.code === "P2002") {
+    return res.status(409).json({
+      success: false,
+      message: `Duplicate entry for field(s): ${err.meta?.target?.join(", ")}`,
+    });
+  }
+
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
 
@@ -17,5 +23,6 @@ function errorMiddleware(err, req, res, next) {
     message,
   });
 }
+
 
 export { TryCatch, errorMiddleware };

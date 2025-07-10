@@ -21,7 +21,7 @@ FEMALE
 
 model User{
 id Int @id @default(autoincrement())
-firstname String
+firstname String 
 lastname String
 username String @unique
 email String? @unique

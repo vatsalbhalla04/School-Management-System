@@ -4,6 +4,7 @@ import pkg from "@prisma/client";
 import { ErrorHandler } from "../../../utils/utility.js";
 // import hashPassword from "../../../utils/password.js";
 
+
 const { PrismaClient } = pkg;
 
 const prisma = new PrismaClient();

@@ -1,14 +1,16 @@
 import express from "express";
 import cors from 'cors'; 
 import adminRoute from "./src/Routes/adminRoutes/admin.js";
-const app = express(); 
 import cookieParser from "cookie-parser";
 import dotenv from 'dotenv';
 import { errorMiddleware } from "./src/middleware/error.js";
 import authRoute from "./src/Routes/auth/authRoute.js";
 import adminMiddleware from "./src/middleware/adminMiddleware.js";
 
+const app = express(); 
+
 dotenv.config();
+
 const JWT_SECRET = process.env.JWT_SECRET;
 
 BigInt.prototype.toJSON = function () {

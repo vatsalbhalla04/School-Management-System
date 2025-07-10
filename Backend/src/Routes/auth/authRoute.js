@@ -41,7 +41,7 @@ authRoute.post(
         .status(200)
         .cookie("STUDENT-token", token, {
           ...cookieOption,
-          maxAge: 1000 * 60 * 60 * 1,
+          maxAge: 1000 * 60 * 60 * 1, // 1 hr sesion for student
         })
         .json({
           success: true,
@@ -90,8 +90,8 @@ authRoute.post(
     return res
       .status(200)
       .cookie(`${user.role}-token`, token, {
-        ...cookieOption,
-        maxAge: 1000 * 60 * 60 * 3,
+        cookieOption,
+        // maxAge: 1000 * 60 * 60 * 3,
       })
       .json({
         success: true,
@@ -104,7 +104,7 @@ authRoute.post(
 
 authRoute.post(
   "/logout",
-  TryCatch(async (req, res,next) => {
+  TryCatch(async (req, res) => {
     const tokens = ["ADMIN-token", "TEACHER-token", "STUDENT-token"];
     let foundToken = false;
 
