@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { email, z } from "zod";
 
 const addFacultySchema = z.object({
   firstname: z.string().min(1),
@@ -27,5 +27,19 @@ const addBulkFacultySchema = z.array(
   })
 );
 
-export {addFacultySchema,addBulkFacultySchema}; 
+const updateFacultyDetails = z.object({
+  firstname: z.string().min(1).optional(),
+  lastname: z.string().min(1).optional(),
+  username: z.string().min(3).optional(),
+  email: z.email().optional(),
+  phoneNumber: z.string().min(10).max(15).optional(),
+  gender: z
+    .string()
+    .transform((val) => val.toUpperCase())
+    .pipe(z.enum(["MALE", "FEMALE"]))
+    .optional(),
+});
+
+
+export {addFacultySchema,addBulkFacultySchema,updateFacultyDetails}; 
 

@@ -49,14 +49,23 @@ section Section @relation(fields: [sectionId],references: [id])
 mark Mark[]
 }
 
-model Teacher{
-id String @id @default(cuid())
-teacherId Int @unique
-teacher User @relation(fields: [teacherId],references: [id])
-
-subjects Subject[]
+model Section {
+  id            Int @id @default(autoincrement())
+  SecName       String
+  standardId    Int
+  standard      Standard  @relation(fields: [standardId], references: [id])
+  students      Student[]
+  classTeacherId String?
+  classTeacher  Teacher?  @relation("Section_classTeacher", fields: [classTeacherId], references: [id], onDelete: SetNull)
 }
 
+model Teacher {
+  id            String @id @default(cuid())
+  teacherId     Int @unique
+  teacher       User @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subjects      Subject[]
+  classSections Section[] @relation("Section_classTeacher")
+}
 model Standard{
 id Int @id @default(autoincrement())
 StdName String // e.g., "10th", "12th"
@@ -64,20 +73,11 @@ StdName String // e.g., "10th", "12th"
 section Section[]
 }
 
-model Section {
-id Int @id @default(autoincrement())
-SecName String
-standardId Int
-standard Standard @relation(fields: [standardId],references: [id])
-
-students Student[]
-}
-
 model Subject{
 id Int @id @default(autoincrement())
 name String // e.g., "Math", "Science"
 teacherId String
-teacher Teacher @relation(fields: [teacherId],references: [id])
+teacher Teacher @relation(fields: [teacherId],references: [id] ,onDelete: Cascade)
 
 marks Mark[]
 }
