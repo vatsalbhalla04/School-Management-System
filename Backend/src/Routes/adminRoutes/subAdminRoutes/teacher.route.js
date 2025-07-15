@@ -2,12 +2,12 @@ import pkg from "@prisma/client";
 import { Router } from "express";
 import { TryCatch } from "../../../middleware/error.js";
 import hashPassword from "../../../utils/password.js";
-import { ErrorHandler } from "../../../utils/utility.js";
 import {
   addBulkFacultySchema,
   addFacultySchema,
   updateFacultyDetails,
 } from "../../../validators/admin/teacher.validator.js";
+import ErrorHandler from "../../../utils/utility.js";
 
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();

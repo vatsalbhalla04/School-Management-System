@@ -1,4 +1,4 @@
-import { email, z } from "zod";
+import { z } from "zod";
 
 const addFacultySchema = z.object({
   firstname: z.string().min(1),
@@ -41,5 +41,5 @@ const updateFacultyDetails = z.object({
 });
 
 
-export {addFacultySchema,addBulkFacultySchema,updateFacultyDetails}; 
+export { addBulkFacultySchema, addFacultySchema, updateFacultyDetails };
 

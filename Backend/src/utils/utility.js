@@ -5,4 +5,4 @@ class ErrorHandler extends Error{
     }
 }
 
-export {ErrorHandler}; 
+export default ErrorHandler; 

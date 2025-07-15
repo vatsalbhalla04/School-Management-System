@@ -1,9 +1,8 @@
 import { Router } from "express";
 import { TryCatch } from "../../../middleware/error.js";
 import pkg from "@prisma/client";
-import { ErrorHandler } from "../../../utils/utility.js";
+import ErrorHandler from "../../../utils/utility.js";
 // import hashPassword from "../../../utils/password.js";
-
 
 const { PrismaClient } = pkg;
 

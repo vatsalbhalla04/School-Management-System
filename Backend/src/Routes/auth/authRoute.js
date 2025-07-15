@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { TryCatch } from "../../middleware/error.js";
-import { ErrorHandler } from "../../utils/utility.js";
+import  ErrorHandler  from "../../utils/utility.js";
 import jwt from "jsonwebtoken";
 import pkg from "@prisma/client";
 import { JWT_SECRET } from "../../../app.js";

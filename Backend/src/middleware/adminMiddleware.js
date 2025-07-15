@@ -1,5 +1,5 @@
 import { JWT_SECRET } from "../../app.js";
-import { ErrorHandler } from "../utils/utility.js";
+import  ErrorHandler  from "../utils/utility.js";
 import jwt from 'jsonwebtoken';
 
 export default function adminMiddleware(req, res, next) {
