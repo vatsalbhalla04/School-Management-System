@@ -175,7 +175,7 @@ teacherRoute.post(
 );
 
 teacherRoute.put(
-  "/update-faculty/:id",
+  "/update-faculty/:username",
   TryCatch(async (req, res, next) => {
     const parsed = updateFacultyDetails.safeParse(req.body);
     if (!parsed.success) {
@@ -186,12 +186,19 @@ teacherRoute.put(
       });
     }
 
+    const { username } = req.params; 
+
+    const user = await prisma.user.findUnique({
+      where: {
+        username
+      }, 
+    }); 
+
+    if(!user) return next(new ErrorHandler("No User found with this username",404)); 
+
     const teacher = await prisma.teacher.findUnique({
       where: {
-        id: req.params.id,
-      },
-      select: {
-        teacherId: true,
+        teacherId: user.id
       },
     });
 
@@ -199,7 +206,7 @@ teacherRoute.put(
 
     const updateFacultyInfo = await prisma.user.update({
       where: {
-        id: teacher.teacherId,
+        id: user.id,
       },
       data: parsed.data,
       select: {
@@ -223,20 +230,27 @@ teacherRoute.put(
 );
 
 teacherRoute.delete(
-  "/delete-faculty/:id",
+  "/delete-faculty/:username",
   TryCatch(async (req, res, next) => {
-    const { id } = req.params;
+    const { username } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: {username}
+    }); 
+
+    if(!user) return next(new ErrorHandler("No User found with this username",404)); 
 
     // Find the teacher to verify existence
     const teacher = await prisma.teacher.findUnique({
-      where: { id },
-      include: { teacher: true },
+      where:{
+        teacherId: user.id
+      }
     });
 
     if (!teacher) return next(new ErrorHandler("Faculty Not Found", 404));
 
     const removedFaculty = await prisma.user.delete({
-      where: { id: teacher.teacherId },
+      where: { id: user.id },
       select: {
         firstname: true,
         lastname: true,
@@ -283,17 +297,24 @@ teacherRoute.delete(
 );
 
 teacherRoute.get(
-  "/faculty-details/:id",
+  "/faculty-details/:username",
   TryCatch(async (req, res, next) => {
+    const {username} = req.params; 
+
+    const user = await prisma.user.findUnique({
+      where:{username}
+    }); 
+
+    if(!user) return next(new ErrorHandler("No User found with this username",404)); 
+
     const teacher = await prisma.teacher.findUnique({
-      where: { id: req.params.id },
-      include: { teacher: true },
+      where: { teacherId: user.id },
     });
 
     if (!teacher) return next(new ErrorHandler("Faculty Not Found", 404));
 
     const getTeacherInfo = await prisma.user.findUnique({
-      where: { id: teacher.teacherId },
+      where: { id: user.id },
       select: {
         id: true,
         firstname: true,
