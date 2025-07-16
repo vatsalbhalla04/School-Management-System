@@ -1,14 +1,14 @@
-import pkg from "@prisma/client";
 import { Router } from "express";
 import { TryCatch } from "../../../middleware/error.js";
 import hashPassword from "../../../utils/password.js";
 import {
   addBulkFacultySchema,
   addFacultySchema,
-  updateFacultyDetails,
+  updateTeacherSchema,
 } from "../../../validators/admin/teacher.validator.js";
 import ErrorHandler from "../../../utils/utility.js";
 
+import pkg from "@prisma/client";
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 const teacherRoute = Router();
@@ -175,40 +175,57 @@ teacherRoute.post(
 );
 
 teacherRoute.put(
-  "/update-faculty/:username",
+  "/update-faculty",
   TryCatch(async (req, res, next) => {
-    const parsed = updateFacultyDetails.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
-        success: false,
-        message: "Validations Failed",
-        errors: parsed.error.errors,
-      });
-    }
+    const result = updateTeacherSchema.safeParse(req.body);
 
-    const { username } = req.params; 
+    if (!result.success)
+      return next(new ErrorHandler("Validations Failed", 404));
 
-    const user = await prisma.user.findUnique({
+    const {
+      currentUsername,
+      newFirstname,
+      newLastname,
+      newEmail,
+      newUsername,
+      newPhoneNumber,
+    } = result.data;
+
+    if (!currentUsername)
+      return next(new ErrorHandler("Current Username is required", 400));
+
+    // Step 1: Find existing faculty
+    const existingTeacher = await prisma.user.findUnique({
       where: {
-        username
-      }, 
-    }); 
-
-    if(!user) return next(new ErrorHandler("No User found with this username",404)); 
-
-    const teacher = await prisma.teacher.findUnique({
-      where: {
-        teacherId: user.id
+        username: currentUsername,
       },
     });
 
-    if (!teacher) return next(new ErrorHandler("Teacher Not Found", 404));
+    if (!existingTeacher)
+      return next(new ErrorHandler("Faculty not found", 404));
 
-    const updateFacultyInfo = await prisma.user.update({
+    // Step 2: Check for duplicate newUsername (if it's changing)
+    if (newUsername && newUsername !== currentUsername) {
+      const usernameExists = await prisma.user.findUnique({
+        where: { username: newUsername },
+      });
+
+      if (usernameExists)
+        return next(new ErrorHandler("New Username already taken", 409));
+    }
+
+    // Step 3: Perform update
+    const updatedFaculty = await prisma.user.update({
       where: {
-        id: user.id,
+        id: existingTeacher.id,
       },
-      data: parsed.data,
+      data: {
+        username: newUsername || undefined,
+        email: newEmail || undefined,
+        firstname: newFirstname || undefined,
+        lastname: newLastname || undefined,
+        phoneNumber: newPhoneNumber || undefined,
+      },
       select: {
         id: true,
         firstname: true,
@@ -218,37 +235,40 @@ teacherRoute.put(
         phoneNumber: true,
         gender: true,
         role: true,
+        createdAt: true,
       },
     });
 
     res.status(200).json({
       success: true,
-      message: "Faculty Details Updated successfully",
-      Details: updateFacultyInfo,
+      message: "Faculty details updated successfully",
+      Details: updatedFaculty,
     });
   })
 );
 
 teacherRoute.delete(
-  "/delete-faculty/:username",
+  "/delete-faculty",
   TryCatch(async (req, res, next) => {
-    const { username } = req.params;
+    const { username } = req.body;
+
+    if (!username) {
+      return next(new ErrorHandler("Username is required", 400));
+    }
 
     const user = await prisma.user.findUnique({
-      where: {username}
-    }); 
-
-    if(!user) return next(new ErrorHandler("No User found with this username",404)); 
-
-    // Find the teacher to verify existence
-    const teacher = await prisma.teacher.findUnique({
-      where:{
-        teacherId: user.id
-      }
+      where: { username },
     });
 
-    if (!teacher) return next(new ErrorHandler("Faculty Not Found", 404));
+    if (!user) {
+      return next(new ErrorHandler("No user found with this username", 404));
+    }
 
+    if (user.role !== "TEACHER") {
+      return next(new ErrorHandler("User is not a faculty member", 403));
+    }
+
+    // Step 4: Delete user (Teacher row will be cascade-deleted)
     const removedFaculty = await prisma.user.delete({
       where: { id: user.id },
       select: {
@@ -260,7 +280,7 @@ teacherRoute.delete(
 
     res.status(200).json({
       success: true,
-      message: `Faculty ${removedFaculty.firstname} deleted successfully.`,
+      message: `Faculty ${removedFaculty.firstname} ${removedFaculty.lastname} deleted successfully.`,
     });
   })
 );
@@ -296,42 +316,34 @@ teacherRoute.delete(
   })
 );
 
-teacherRoute.get(
-  "/faculty-details/:username",
+teacherRoute.post(
+  "/faculty-details",
   TryCatch(async (req, res, next) => {
-    const {username} = req.params; 
+    const { username } = req.body;
 
-    const user = await prisma.user.findUnique({
-      where:{username}
-    }); 
+    if (!username) return next(new ErrorHandler("Username is required", 400));
 
-    if(!user) return next(new ErrorHandler("No User found with this username",404)); 
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) return next(new ErrorHandler("No user found with this username", 404));
 
-    const teacher = await prisma.teacher.findUnique({
-      where: { teacherId: user.id },
-    });
+    if (user.role !== "TEACHER") return next(new ErrorHandler("User is not a teacher", 403));
 
-    if (!teacher) return next(new ErrorHandler("Faculty Not Found", 404));
-
-    const getTeacherInfo = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        id: true,
-        firstname: true,
-        lastname: true,
-        username: true,
-        email: true,
-        phoneNumber: true,
-        gender: true,
-        role: true,
-        createdAt: true,
-      },
-    });
+    const facultyDetails = {
+      id: user.id,
+      firstname: user.firstname,
+      lastname: user.lastname,
+      username: user.username,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      gender: user.gender,
+      role: user.role,
+      createdAt: user.createdAt,
+    };
 
     res.status(200).json({
       success: true,
-      message: `Fetched ${getTeacherInfo.firstname} ${getTeacherInfo.lastname} Deatils Successfully`,
-      Faculty_Details: getTeacherInfo,
+      message: `Fetched ${user.firstname} ${user.lastname} details successfully.`,
+      Faculty_Details: facultyDetails,
     });
   })
 );
