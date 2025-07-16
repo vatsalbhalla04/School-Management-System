@@ -36,9 +36,9 @@ standardRoute.post(
 );
 
 standardRoute.delete(
-  "/delete-std/:stdName",
+  "/delete-std",
   TryCatch(async (req, res, next) => {
-    const { stdName } = req.params;
+    const { stdName } = req.body;
 
     const existingStd = await prisma.standard.findUnique({
       where: { StdName: stdName },
