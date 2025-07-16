@@ -355,9 +355,14 @@ teacherRoute.get(
       where: { role: "TEACHER" },
     });
 
-    if (teachers.length === 0)
-      return next(new ErrorHandler("No teachers Found", 404));
-
+    if (teachers.length === 0){
+      return res.status(204).json({
+        success: true,
+        message: "No Faculties available yet. Add some.",
+        data: [],
+      });
+    }
+    
     const teacherIds = teachers.map((t) => t.id);
 
     const allFaultyDetails = await prisma.user.findMany({
