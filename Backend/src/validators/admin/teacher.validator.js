@@ -27,19 +27,24 @@ const addBulkFacultySchema = z.array(
   })
 );
 
-const updateFacultyDetails = z.object({
-  firstname: z.string().min(1).optional(),
-  lastname: z.string().min(1).optional(),
-  username: z.string().min(3).optional(),
-  email: z.email().optional(),
-  phoneNumber: z.string().min(10).max(15).optional(),
-  gender: z
-    .string()
-    .transform((val) => val.toUpperCase())
-    .pipe(z.enum(["MALE", "FEMALE"]))
-    .optional(),
-});
+const updateTeacherSchema = z
+  .object({
+    currentUsername: z.string().min(1, "Current username is required"),
+    newUsername: z.string().optional(),
+    newFirstname: z.string().optional(),
+    newLastname: z.string().optional(),
+    newEmail: z.email("Invalid email").optional(),
+    newPhoneNumber: z.string().min(10).max(12).optional(),
+  })
+  .refine(
+    (data) =>
+      data.newUsername || data.newFirstname || data.newLastname || data.newEmail,
+    {
+      message: "At least one field must be provided to update",
+      path: ["updateFields"], 
+    }
+  );
 
 
-export { addBulkFacultySchema, addFacultySchema, updateFacultyDetails };
+export { addBulkFacultySchema, addFacultySchema, updateTeacherSchema };
 
