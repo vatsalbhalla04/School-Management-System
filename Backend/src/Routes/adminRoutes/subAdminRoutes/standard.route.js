@@ -1,8 +1,9 @@
-import { Router } from "express";
-import { TryCatch } from "../../../middleware/error.js";
-import stdValidations from "../../../validators/admin/standard.validator.js";
 import pkg from "@prisma/client";
+import { Router } from "express";
+import { success } from "zod";
+import { TryCatch } from "../../../middleware/error.js";
 import ErrorHandler from "../../../utils/utility.js";
+import stdValidations from "../../../validators/admin/standard.validator.js";
 
 const standardRoute = Router();
 
@@ -75,7 +76,13 @@ standardRoute.get(
   TryCatch(async (req, res, next) => {
     const allstds = await prisma.standard.findMany({});
 
-    if (allstds.length === 0) return next(new ErrorHandler("Add Standard"));
+    if (allstds.length === 0){
+      return res.status(204).json({
+        success: true,
+        message: "No Standards available yet. Add some.",
+        data: [],
+      });
+    };
 
     res.status(200).json({
       success: true,
