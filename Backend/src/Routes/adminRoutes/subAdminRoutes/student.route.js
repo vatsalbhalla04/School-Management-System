@@ -4,10 +4,10 @@ const studentRoute = Router();
 studentRoute.post("/",(req,res)=>{
 
 }); 
-studentRoute.put("/:id",(req,res)=>{
+studentRoute.put("/",(req,res)=>{
 
 }); 
-studentRoute.delete("/:id",(req,res)=>{
+studentRoute.delete("/",(req,res)=>{
 
 }); 
 

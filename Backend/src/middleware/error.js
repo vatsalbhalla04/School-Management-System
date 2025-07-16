@@ -1,3 +1,5 @@
+import { beautifyPrismaError } from "../utils/prismaError.js";
+
 function TryCatch(passedFun) { // higher Order Function
   return async (req, res, next) => {
     try {
@@ -17,6 +19,10 @@ function errorMiddleware(err, req, res, next) {
 
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
+
+  if(message.includes("Invalid Prisma")){
+    message = beautifyPrismaError(message);
+  }
 
   return res.status(statusCode).json({
     success: false,
