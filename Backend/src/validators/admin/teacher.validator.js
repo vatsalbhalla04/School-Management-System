@@ -29,7 +29,6 @@ const addBulkFacultySchema = z.array(
 
 const updateTeacherSchema = z
   .object({
-    currentUsername: z.string().min(1, "Current username is required"),
     newUsername: z.string().optional(),
     newFirstname: z.string().optional(),
     newLastname: z.string().optional(),
