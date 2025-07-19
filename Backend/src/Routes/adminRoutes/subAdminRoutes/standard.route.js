@@ -37,12 +37,12 @@ standardRoute.post(
 );
 
 standardRoute.delete(
-  "/delete-std",
+  "/delete-std/:id",
   TryCatch(async (req, res, next) => {
-    const { stdName } = req.body;
+    const id = Number(req.params.id);
 
     const existingStd = await prisma.standard.findUnique({
-      where: { StdName: stdName },
+      where: { id },
     });
 
     if (!existingStd) return next(new ErrorHandler("No Such Std Exists", 404));
@@ -61,9 +61,10 @@ standardRoute.delete(
       );
 
     const removeStd = await prisma.standard.delete({
-      where: { StdName: stdName },
-    });
-
+      where:{
+        id: existingStd.id
+      }
+    })
     res.status(200).json({
       success: true,
       message: `${removeStd.StdName} standard deleted successfully`,
@@ -76,13 +77,13 @@ standardRoute.get(
   TryCatch(async (req, res, next) => {
     const allstds = await prisma.standard.findMany({});
 
-    if (allstds.length === 0){
+    if (allstds.length === 0) {
       return res.status(204).json({
         success: true,
         message: "No Standards available yet. Add some.",
         data: [],
       });
-    };
+    }
 
     res.status(200).json({
       success: true,
