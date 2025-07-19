@@ -77,14 +77,12 @@ authRoute.post(
 
     //only ADMIN or Teacher shoudl enetr the secret key:
     if (
-      (user.role === "ADMIN" || user.role === "TEACHER") &&
-      user.secretKey !== secretKey
-    ) {
+      (user.role === "ADMIN" || user.role === "TEACHER") && user.secretKey !== secretKey) {
       return next(new ErrorHandler("Invalid Secret Key", 403));
     }
 
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
-      expiresIn: "3h",
+      // expiresIn: "3h",
     });
 
     return res
