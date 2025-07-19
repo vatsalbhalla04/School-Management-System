@@ -1,14 +1,14 @@
 import { Router } from "express";
 import { TryCatch } from "../../../middleware/error.js";
 import hashPassword from "../../../utils/password.js";
+import ErrorHandler from "../../../utils/utility.js";
 import {
   addBulkFacultySchema,
   addFacultySchema,
   updateTeacherSchema,
 } from "../../../validators/admin/teacher.validator.js";
-import ErrorHandler from "../../../utils/utility.js";
-
 import pkg from "@prisma/client";
+
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 const teacherRoute = Router();
@@ -175,15 +175,15 @@ teacherRoute.post(
 );
 
 teacherRoute.put(
-  "/update-faculty",
+  "/update-faculty/:id",
   TryCatch(async (req, res, next) => {
-    const result = updateTeacherSchema.safeParse(req.body);
+    const id = Number(req.params.id); //convert to number
 
+    const result = updateTeacherSchema.safeParse(req.body);
     if (!result.success)
       return next(new ErrorHandler("Validations Failed", 404));
 
     const {
-      currentUsername,
       newFirstname,
       newLastname,
       newEmail,
@@ -191,77 +191,51 @@ teacherRoute.put(
       newPhoneNumber,
     } = result.data;
 
-    if (!currentUsername)
-      return next(new ErrorHandler("Current Username is required", 400));
-
-    // Step 1: Find existing faculty
-    const existingTeacher = await prisma.user.findUnique({
-      where: {
-        username: currentUsername,
-      },
+    const existingFaculty = await prisma.user.findUnique({
+      where: { id },
     });
 
-    if (!existingTeacher)
-      return next(new ErrorHandler("Faculty not found", 404));
+    if (!existingFaculty)
+      return next(new ErrorHandler("Faculty Not found", 404));
 
-    // Step 2: Check for duplicate newUsername (if it's changing)
-    if (newUsername && newUsername !== currentUsername) {
-      const usernameExists = await prisma.user.findUnique({
-        where: { username: newUsername },
-      });
-
-      if (usernameExists)
-        return next(new ErrorHandler("New Username already taken", 409));
-    }
-
-    // Step 3: Perform update
-    const updatedFaculty = await prisma.user.update({
-      where: {
-        id: existingTeacher.id,
-      },
+    const updateFaculty = await prisma.user.update({
+      where: { id },
       data: {
-        username: newUsername || undefined,
-        email: newEmail || undefined,
-        firstname: newFirstname || undefined,
-        lastname: newLastname || undefined,
-        phoneNumber: newPhoneNumber || undefined,
+        email: newEmail,
+        firstname: newFirstname,
+        lastname: newLastname,
+        phoneNumber: newPhoneNumber,
+        username: newUsername,
       },
       select: {
-        id: true,
         firstname: true,
         lastname: true,
         username: true,
         email: true,
-        phoneNumber: true,
         gender: true,
-        role: true,
-        createdAt: true,
+        phoneNumber: true,
       },
     });
 
     res.status(200).json({
       success: true,
       message: "Faculty details updated successfully",
-      Details: updatedFaculty,
+      Updated_Faculty_Details: updateFaculty,
     });
   })
 );
 
 teacherRoute.delete(
-  "/delete-faculty",
+  "/delete-faculty/:id",
   TryCatch(async (req, res, next) => {
-    const { username } = req.body;
-
-    if (!username) {
-      return next(new ErrorHandler("Username is required", 400));
-    }
+    const id = Number(req.params.id); 
 
     const user = await prisma.user.findUnique({
-      where: { username },
+      where: {id},
     });
 
     if (!user) {
-      return next(new ErrorHandler("No user found with this username", 404));
+      return next(new ErrorHandler("No user found", 404));
     }
 
     if (user.role !== "TEACHER") {
@@ -316,15 +290,13 @@ teacherRoute.delete(
   })
 );
 
-teacherRoute.post(
-  "/faculty-details",
+teacherRoute.get(
+  "/faculty-details/:id",
   TryCatch(async (req, res, next) => {
-    const { username } = req.body;
+    const id = Number(req.params.id); 
 
-    if (!username) return next(new ErrorHandler("Username is required", 400));
-
-    const user = await prisma.user.findUnique({ where: { username } });
-    if (!user) return next(new ErrorHandler("No user found with this username", 404));
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return next(new ErrorHandler("No user found", 404));
 
     if (user.role !== "TEACHER") return next(new ErrorHandler("User is not a teacher", 403));
 
@@ -377,6 +349,7 @@ teacherRoute.get(
         username: true,
         email: true,
         phoneNumber: true,
+        id:true
       },
     });
 
