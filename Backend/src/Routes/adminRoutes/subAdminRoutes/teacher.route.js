@@ -8,17 +8,23 @@ import {
   updateTeacherSchema,
 } from "../../../validators/admin/teacher.validator.js";
 import pkg from "@prisma/client";
+import routeCache from "../../../middleware/routeCache.js";
+import cache from "../../../middleware/cacheInstance.js";
+
+const FACULTY_CACHE_KEY = "/api/v1/admin/all-faculties";
 
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 const teacherRoute = Router();
-
 teacherRoute.post(
   "/add-faculty",
   TryCatch(async (req, res, next) => {
+    console.time("addFacultyRoute");
+
     const result = addFacultySchema.safeParse(req.body);
 
     if (!result.success) {
+      console.timeEnd("addFacultyRoute");
       return res.status(400).json({
         success: false,
         message: "Validation failed",
@@ -37,21 +43,27 @@ teacherRoute.post(
       password,
     } = result.data;
 
+    console.time("CheckExistingUser");
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [{ username }, { email }],
       },
     });
+    console.timeEnd("CheckExistingUser");
 
     if (existingUser) {
+      console.timeEnd("addFacultyRoute");
       return res.status(409).json({
         success: false,
         message: "User with given username or email already exists.",
       });
     }
 
+    console.time("PasswordHash");
     const hashedPassword = await hashPassword(password);
+    console.timeEnd("PasswordHash");
 
+    console.time("CreateUser");
     const teacherUser = await prisma.user.create({
       data: {
         firstname,
@@ -73,12 +85,19 @@ teacherRoute.post(
         phoneNumber: true,
       },
     });
+    console.timeEnd("CreateUser");
 
+    console.time("CreateTeacherProfile");
     const teacherProfile = await prisma.teacher.create({
       data: {
         teacherId: teacherUser.id,
       },
     });
+
+    cache.del(FACULTY_CACHE_KEY); 
+    console.timeEnd("CreateTeacherProfile");
+
+    console.timeEnd("addFacultyRoute");
 
     res.status(200).json({
       success: true,
@@ -165,6 +184,8 @@ teacherRoute.post(
 
     const created = usersData.filter(Boolean); // remove nulls
 
+    if(created.length > 0) cache.del(FACULTY_CACHE_KEY);
+
     res.status(207).json({
       success: true,
       message: `${created.length} teacher(s) created, ${failed.length} failed.`,
@@ -183,13 +204,8 @@ teacherRoute.put(
     if (!result.success)
       return next(new ErrorHandler("Validations Failed", 404));
 
-    const {
-      newFirstname,
-      newLastname,
-      newEmail,
-      newUsername,
-      newPhoneNumber,
-    } = result.data;
+    const { newFirstname, newLastname, newEmail, newUsername, newPhoneNumber } =
+      result.data;
 
     const existingFaculty = await prisma.user.findUnique({
       where: { id },
@@ -217,6 +233,8 @@ teacherRoute.put(
       },
     });
 
+    cache.del(FACULTY_CACHE_KEY);
+
     res.status(200).json({
       success: true,
       message: "Faculty details updated successfully",
@@ -226,12 +244,12 @@ teacherRoute.put(
 );
 
 teacherRoute.delete(
-  "/delete-faculty/:id",
+  "/delete-faculty",
   TryCatch(async (req, res, next) => {
-    const id = Number(req.params.id); 
+    const id = Number(req.query.id);
 
     const user = await prisma.user.findUnique({
-      where: {id},
+      where: { id },
     });
 
     if (!user) {
@@ -252,6 +270,8 @@ teacherRoute.delete(
       },
     });
 
+    cache.del(FACULTY_CACHE_KEY);
+
     res.status(200).json({
       success: true,
       message: `Faculty ${removedFaculty.firstname} ${removedFaculty.lastname} deleted successfully.`,
@@ -260,81 +280,82 @@ teacherRoute.delete(
 );
 
 teacherRoute.delete(
-  "/delete-all-faculties",
+  "/delete-faculty",
   TryCatch(async (req, res, next) => {
-    // will try to implement pagination afterwards.
-    const teachers = await prisma.user.findMany({
-      where: { role: "TEACHER" },
-    });
+    const id = Number(req.query.id);
+    if (!id) return next(new ErrorHandler("ID is required", 400));
 
-    if (teachers.length === 0)
-      return next(new ErrorHandler("No teachers found", 404));
-
-    const teacherIds = teachers.map((t) => t.id);
-
-    const deletedTeacher = await prisma.user.deleteMany({
-      where: {
-        id: {
-          in: {
-            teacherIds,
-          },
+      const removedFaculty = await prisma.user.delete({
+        where: { id },
+        select: {
+          firstname: true,
+          lastname: true,
+          username: true,
+          role: true,
         },
-      },
-    });
+      });
 
-    res.status(200).json({
-      success: true,
-      message: `Deleted ${deletedTeacher.count} teachers deleted`,
-      deleted: teachers,
-    });
+      if (removedFaculty.role !== "TEACHER") {
+        return next(new ErrorHandler("User is not a faculty member", 403));
+      }
+
+      cache.del(FACULTY_CACHE_KEY);
+
+      return res.status(200).json({
+        success: true,
+        message: `Faculty ${removedFaculty.firstname} ${removedFaculty.lastname} deleted successfully.`,
+      });
   })
 );
 
-teacherRoute.get(
-  "/faculty-details/:id",
-  TryCatch(async (req, res, next) => {
-    const id = Number(req.params.id); 
 
-    const user = await prisma.user.findUnique({ where: { id } });
+teacherRoute.get(
+  "/faculty-details",
+  TryCatch(async (req, res, next) => {
+    const id = Number(req.query.id);
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        username: true,
+        email: true,
+        phoneNumber: true,
+        gender: true,
+        role: true,
+      },
+    });
+
     if (!user) return next(new ErrorHandler("No user found", 404));
 
-    if (user.role !== "TEACHER") return next(new ErrorHandler("User is not a teacher", 403));
-
-    const facultyDetails = {
-      id: user.id,
-      firstname: user.firstname,
-      lastname: user.lastname,
-      username: user.username,
-      email: user.email,
-      phoneNumber: user.phoneNumber,
-      gender: user.gender,
-      role: user.role,
-      createdAt: user.createdAt,
-    };
+    if (user.role !== "TEACHER")
+      return next(new ErrorHandler("User is not a teacher", 403));
 
     res.status(200).json({
       success: true,
       message: `Fetched ${user.firstname} ${user.lastname} details successfully.`,
-      Faculty_Details: facultyDetails,
+      facultyDetails: user,
     });
   })
 );
 
 teacherRoute.get(
-  "/all-faculties",
+  "/all-faculties", routeCache(80),
   TryCatch(async (req, res, next) => {
     const teachers = await prisma.user.findMany({
       where: { role: "TEACHER" },
     });
 
-    if (teachers.length === 0){
+    if (teachers.length === 0) {
       return res.status(204).json({
         success: true,
         message: "No Faculties available yet. Add some.",
         data: [],
       });
     }
-    
+
     const teacherIds = teachers.map((t) => t.id);
 
     const allFaultyDetails = await prisma.user.findMany({
@@ -349,13 +370,14 @@ teacherRoute.get(
         username: true,
         email: true,
         phoneNumber: true,
-        id:true
+        id: true,
       },
     });
 
     res.status(200).json({
       success: true,
-      Faculty_Details: allFaultyDetails,
+      Total: `Total Number of Faculties ${allFaultyDetails.length}`,
+      Data: allFaultyDetails,
     });
   })
 );

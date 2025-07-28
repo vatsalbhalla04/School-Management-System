@@ -1,18 +1,42 @@
 import { Router } from "express";
-const studentRoute = Router(); 
+import { TryCatch } from "../../../middleware/error.js";
+import ErrorHandler from "../../../utils/utility.js";
+import pkg from "@prisma/client";
 
-studentRoute.post("/",(req,res)=>{
+const studentRoute = Router();
 
-}); 
-studentRoute.put("/",(req,res)=>{
+const { PrismaClient } = pkg;
 
-}); 
-studentRoute.delete("/",(req,res)=>{
+const prisma = new PrismaClient();
 
-}); 
+studentRoute.post(
+  "/add-students/secName/:id",
+  TryCatch(async (req, res, next) => {})
+);
 
-studentRoute.get("/",(req,res)=>{
+studentRoute.put(
+  "/update-student/:id",
+  TryCatch(async (req, res, next) => {})
+);
 
-});
+studentRoute.delete(
+  "/delete-student/:id",
+  TryCatch(async (req, res, next) => {})
+);
 
-export default studentRoute; 
+studentRoute.delete(
+  "/delete-student",
+  TryCatch(async (req, res, next) => {})
+);
+
+studentRoute.get(
+  "/all-students/secName/:id",
+  TryCatch(async (req, res, next) => {})
+);
+
+studentRoute.get(
+  "/all-students",
+  TryCatch(async (req, res, next) => {})
+);
+
+export default studentRoute;

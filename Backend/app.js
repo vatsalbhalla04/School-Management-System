@@ -1,11 +1,12 @@
-import express from "express";
-import cors from 'cors'; 
-import adminRoute from "./src/Routes/adminRoutes/admin.js";
+import compression from "compression";
 import cookieParser from "cookie-parser";
+import cors from 'cors';
 import dotenv from 'dotenv';
-import { errorMiddleware } from "./src/middleware/error.js";
-import authRoute from "./src/Routes/auth/authRoute.js";
+import express from "express";
 import adminMiddleware from "./src/middleware/adminMiddleware.js";
+import { errorMiddleware } from "./src/middleware/error.js";
+import adminRoute from "./src/Routes/adminRoutes/admin.js";
+import authRoute from "./src/Routes/auth/authRoute.js";
 
 const app = express(); 
 
@@ -22,6 +23,11 @@ app.use(cors({
 })); 
 app.use(express.json()); 
 app.use(cookieParser())
+app.use(compression({
+    threshold: 0, 
+    level: 3, 
+    memLevel: 8
+})); 
 app.use('/api/v1/auth',authRoute);
 app.use('/api/v1/admin',adminMiddleware,adminRoute); 
 // app.use('/api/v1/admin',adminRoute); 
@@ -31,4 +37,4 @@ app.listen(3000,()=>{
     console.log("Server Running On Port 3000");
 });
 
-export {JWT_SECRET}; 
+export { JWT_SECRET };
