@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from "express";
-import adminMiddleware from "./src/middleware/adminMiddleware.js";
+// import adminMiddleware from "./src/middleware/adminMiddleware.js";
 import { errorMiddleware } from "./src/middleware/error.js";
 import adminRoute from "./src/Routes/adminRoutes/admin.js";
 import authRoute from "./src/Routes/auth/authRoute.js";
@@ -30,8 +30,8 @@ app.use(compression({
     memLevel: 8
 })); 
 app.use('/api/v1/auth',authRoute);
-app.use('/api/v1/admin',adminMiddleware,adminRoute); 
-// app.use('/api/v1/admin',adminRoute); 
+// app.use('/api/v1/admin',adminMiddleware,adminRoute); 
+app.use('/api/v1/admin',adminRoute); 
 app.use(errorMiddleware)
 
 app.listen(3000,()=>{
