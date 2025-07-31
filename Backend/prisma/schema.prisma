@@ -18,6 +18,15 @@ enum Gender {
   FEMALE
 }
 
+enum Days {
+  MONDAY
+  TUESDAY
+  WEDNESAY
+  THRUSDAY
+  FRIDAY
+  SATURDAY
+}
+
 enum ExamType {
   TERM1
   TERM2
@@ -25,96 +34,112 @@ enum ExamType {
 }
 
 model User {
-  id          Int      @id @default(autoincrement())
-  firstname   String
-  lastname    String
-  username    String   @unique
-  email       String?  @unique
-  phoneNumber BigInt?  @unique
-  gender      Gender?
-  password    String
-  role        Role
-  secretKey   String?  @unique
-  createdAt   DateTime @default(now())
+  id                  Int      @id @default(autoincrement())
+  firstname           String
+  lastname            String
+  username            String   @unique
+  email               String?  @unique
+  phoneNumber         BigInt?  @unique
+  gender              Gender?
+  password            String
+  role                Role
+  secretKey           String?  @unique
+  createdAt           DateTime @default(now())
 
-  // Relations
-  student Student?
-  teacher Teacher?
+  // Teacher-specific fields (all optional for flexibility)
+  qualification       String?
+  joiningDate         String?
+  experience          String?
+
+  // Address
+  street              String?
+  city                String?
+  state               String?
+  zipCode             String?
+  country             String?
+
+  // Emergency contact
+  emergencyName       String?
+  emergencyPhone      String?
+  emergencyRelation   String?
+
+  student             Student?
+  teacher             Teacher?
 }
 
+
 model Student {
-  id         String   @id @default(cuid())
-  studentId  Int      @unique
-  student    User     @relation(fields: [studentId], references: [id])
-  sectionId  Int
-  section    Section  @relation(fields: [sectionId], references: [id])
-  mark       Mark[]
+  id                  String   @id @default(cuid())
+  studentId           Int      @unique
+  student             User     @relation(fields: [studentId], references: [id])
+  sectionId           Int
+  section             Section  @relation(fields: [sectionId], references: [id])
+  mark                Mark[]
 }
 
 model Teacher {
-  id              String  @id @default(cuid())
-  teacherId       Int @unique
-  teacher         User  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  classSections  Section[]  @relation("Section_classTeacher")
-  subjects       Subject[]
-  assignments    SubjectAssignment[] // New: link to Subject + Section
+  id                  String  @id @default(cuid())
+  teacherId           Int @unique
+  teacher             User  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classSections       Section[]  @relation("Section_classTeacher")
+  subjects            Subject[]
+  assignments         SubjectAssignment[] // New: link to Subject + Section
 }
 
 model Section {
-  id            Int  @id @default(autoincrement())
-  SecName       String
-  standardId    Int
-  standard      Standard  @relation(fields: [standardId], references: [id])
-  students       Student[]
-  classTeacherId String?
-  classTeacher   Teacher?          @relation("Section_classTeacher", fields: [classTeacherId], references: [id], onDelete: SetNull)
-  assignments   SubjectAssignment[] // New: subjects taught in this section
+  id                  Int  @id @default(autoincrement())
+  SecName             String
+  standardId          Int
+  standard            Standard  @relation(fields: [standardId], references: [id])
+  students            Student[]
+  classTeacherId      String?
+  classTeacher        Teacher?          @relation("Section_classTeacher", fields: [classTeacherId], references: [id], onDelete: SetNull)
+  assignments         SubjectAssignment[] // New: subjects taught in this section
 
   @@unique([classTeacherId])
 
 }
 
 model Standard {
-  id       Int       @id @default(autoincrement())
-  StdName  String    @unique
-  sections Section[]
-  subjects Subject[]
+  id                Int       @id @default(autoincrement())
+  StdName           String    @unique
+  sections          Section[]
+  subjects          Subject[]
 }
 
 model Subject {
-  id          Int   @id @default(autoincrement())
-  name        String
-  teacherId   String
-  teacher     Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  standardId  Int
-  standard    Standard  @relation(fields: [standardId], references: [id])
-  marks       Mark[]
-  assignments SubjectAssignment[] // New: link to Sections
+  id                Int   @id @default(autoincrement())
+  name              String
+  teacherId         String
+  teacher           Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  standardId        Int
+  standard          Standard  @relation(fields: [standardId], references: [id])
+  marks             Mark[]
+  assignments       SubjectAssignment[] // New: link to Sections
 }
 
 model SubjectAssignment {
-  id         Int     @id @default(autoincrement())
-  teacherId  String
-  subjectId  Int
-  sectionId  Int
-
-  teacher    Teacher  @relation(fields: [teacherId], references: [id])
-  subject    Subject  @relation(fields: [subjectId], references: [id])
-  section    Section  @relation(fields: [sectionId], references: [id])
+  id                 Int     @id @default(autoincrement())
+  teacherId          String
+  subjectId          Int
+  sectionId          Int
+  teacher            Teacher  @relation(fields: [teacherId], references: [id])
+  subject            Subject  @relation(fields: [subjectId], references: [id])
+  section            Section  @relation(fields: [sectionId], references: [id])
 
   @@unique([teacherId, subjectId, sectionId])
 }
 
 model Mark {
-  id         Int       @id @default(autoincrement())
-  studentId  String
-  subjectId  Int
-  score      Float
-  examType   ExamType
-  updatedAt  DateTime  @updatedAt @default(now())
+  id                Int       @id @default(autoincrement())
+  studentId         String
+  subjectId         Int
+  score             Float
+  examType          ExamType
+  updatedAt         DateTime  @updatedAt @default(now())
 
-  student    Student   @relation(fields: [studentId], references: [id])
-  subject    Subject   @relation(fields: [subjectId], references: [id])
+  student           Student   @relation(fields: [studentId], references: [id])
+  subject           Subject   @relation(fields: [subjectId], references: [id])
 
   @@unique([studentId, subjectId, examType])
 

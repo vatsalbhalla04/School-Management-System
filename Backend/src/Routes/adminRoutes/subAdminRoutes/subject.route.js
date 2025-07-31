@@ -1,6 +1,5 @@
 import pkg from "@prisma/client";
 import { Router } from "express";
-import { success } from "zod";
 import { TryCatch } from "../../../middleware/error.js";
 import ErrorHandler from "../../../utils/utility.js";
 import subjectRouteValidations from "../../../validators/admin/subject.validator.js";

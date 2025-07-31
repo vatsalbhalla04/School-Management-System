@@ -20,7 +20,7 @@ BigInt.prototype.toJSON = function () {
 
 app.use(cors({
     credentials: true,
-    origin: "https://localhost:5173"
+    origin: "http://localhost:5173"
 })); 
 app.use(express.json()); 
 app.use(cookieParser())

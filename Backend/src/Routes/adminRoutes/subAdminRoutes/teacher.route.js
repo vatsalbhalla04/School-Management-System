@@ -41,6 +41,16 @@ teacherRoute.post(
       email,
       secretKey,
       password,
+      qualification,
+      joiningDate,
+      experience,
+      street,
+      city,
+      zipCode,
+      country,
+      emergencyName,
+      emergencyPhone,
+      emergencyRelation,
     } = result.data;
 
     console.time("CheckExistingUser");
@@ -74,6 +84,16 @@ teacherRoute.post(
         gender,
         secretKey,
         password: hashedPassword,
+        qualification,
+        joiningDate,
+        experience,
+        street,
+        city,
+        zipCode,
+        country,
+        emergencyName,
+        emergencyPhone,
+        emergencyRelation,
         role: "TEACHER",
       },
       select: {
@@ -83,7 +103,18 @@ teacherRoute.post(
         username: true,
         email: true,
         phoneNumber: true,
+        qualification: true,
+        joiningDate: true,
+        experience: true,
+        street: true,
+        city: true,
+        zipCode: true,
+        country: true,
+        emergencyName: true,
+        emergencyPhone: true,
+        emergencyRelation: true,
       },
+      
     });
     console.timeEnd("CreateUser");
 
@@ -94,7 +125,7 @@ teacherRoute.post(
       },
     });
 
-    cache.del(FACULTY_CACHE_KEY); 
+    cache.del(FACULTY_CACHE_KEY);
     console.timeEnd("CreateTeacherProfile");
 
     console.timeEnd("addFacultyRoute");
@@ -184,7 +215,7 @@ teacherRoute.post(
 
     const created = usersData.filter(Boolean); // remove nulls
 
-    if(created.length > 0) cache.del(FACULTY_CACHE_KEY);
+    if (created.length > 0) cache.del(FACULTY_CACHE_KEY);
 
     res.status(207).json({
       success: true,
@@ -285,29 +316,28 @@ teacherRoute.delete(
     const id = Number(req.query.id);
     if (!id) return next(new ErrorHandler("ID is required", 400));
 
-      const removedFaculty = await prisma.user.delete({
-        where: { id },
-        select: {
-          firstname: true,
-          lastname: true,
-          username: true,
-          role: true,
-        },
-      });
+    const removedFaculty = await prisma.user.delete({
+      where: { id },
+      select: {
+        firstname: true,
+        lastname: true,
+        username: true,
+        role: true,
+      },
+    });
 
-      if (removedFaculty.role !== "TEACHER") {
-        return next(new ErrorHandler("User is not a faculty member", 403));
-      }
+    if (removedFaculty.role !== "TEACHER") {
+      return next(new ErrorHandler("User is not a faculty member", 403));
+    }
 
-      cache.del(FACULTY_CACHE_KEY);
+    cache.del(FACULTY_CACHE_KEY);
 
-      return res.status(200).json({
-        success: true,
-        message: `Faculty ${removedFaculty.firstname} ${removedFaculty.lastname} deleted successfully.`,
-      });
+    return res.status(200).json({
+      success: true,
+      message: `Faculty ${removedFaculty.firstname} ${removedFaculty.lastname} deleted successfully.`,
+    });
   })
 );
-
 
 teacherRoute.get(
   "/faculty-details",
@@ -342,7 +372,8 @@ teacherRoute.get(
 );
 
 teacherRoute.get(
-  "/all-faculties", routeCache(80),
+  "/all-faculties",
+  routeCache(80),
   TryCatch(async (req, res, next) => {
     const teachers = await prisma.user.findMany({
       where: { role: "TEACHER" },
