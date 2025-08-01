@@ -10,6 +10,10 @@ import {
 import pkg from "@prisma/client";
 import routeCache from "../../../middleware/routeCache.js";
 import cache from "../../../middleware/cacheInstance.js";
+import {
+  facultySelectFields,
+  facultyFields,
+} from "../../../constants/teacher.prisma.js";
 
 const FACULTY_CACHE_KEY = "/api/v1/admin/all-faculties";
 
@@ -19,106 +23,49 @@ const teacherRoute = Router();
 teacherRoute.post(
   "/add-faculty",
   TryCatch(async (req, res, next) => {
-    console.time("addFacultyRoute");
 
     const result = addFacultySchema.safeParse(req.body);
 
     if (!result.success) {
-      console.timeEnd("addFacultyRoute");
       return res.status(400).json({
         success: false,
         message: "Validation failed",
-        errors: result.error.errors,
+        errors: result.error.issues,
       });
     }
 
-    const {
-      firstname,
-      lastname,
-      username,
-      phoneNumber,
-      gender,
-      email,
-      secretKey,
-      password,
-      qualification,
-      joiningDate,
-      experience,
-      street,
-      city,
-      zipCode,
-      country,
-      emergencyName,
-      emergencyPhone,
-      emergencyRelation,
-    } = result.data;
+    const formData = Object.fromEntries(
+      facultyFields.map((f) => [f, result.data[f]])
+    );
 
-    console.time("CheckExistingUser");
+    const { username, email, password, ...rest } = formData;
+
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [{ username }, { email }],
       },
     });
-    console.timeEnd("CheckExistingUser");
 
     if (existingUser) {
-      console.timeEnd("addFacultyRoute");
       return res.status(409).json({
         success: false,
         message: "User with given username or email already exists.",
       });
     }
 
-    console.time("PasswordHash");
     const hashedPassword = await hashPassword(password);
-    console.timeEnd("PasswordHash");
 
-    console.time("CreateUser");
     const teacherUser = await prisma.user.create({
       data: {
-        firstname,
-        lastname,
+        ...rest,
         username,
         email,
-        phoneNumber,
-        gender,
-        secretKey,
-        password: hashedPassword,
-        qualification,
-        joiningDate,
-        experience,
-        street,
-        city,
-        zipCode,
-        country,
-        emergencyName,
-        emergencyPhone,
-        emergencyRelation,
+        password,
         role: "TEACHER",
       },
-      select: {
-        id: true,
-        firstname: true,
-        lastname: true,
-        username: true,
-        email: true,
-        phoneNumber: true,
-        qualification: true,
-        joiningDate: true,
-        experience: true,
-        street: true,
-        city: true,
-        zipCode: true,
-        country: true,
-        emergencyName: true,
-        emergencyPhone: true,
-        emergencyRelation: true,
-      },
-      
+      select: { ...facultySelectFields },
     });
-    console.timeEnd("CreateUser");
 
-    console.time("CreateTeacherProfile");
     const teacherProfile = await prisma.teacher.create({
       data: {
         teacherId: teacherUser.id,
@@ -126,9 +73,6 @@ teacherRoute.post(
     });
 
     cache.del(FACULTY_CACHE_KEY);
-    console.timeEnd("CreateTeacherProfile");
-
-    console.timeEnd("addFacultyRoute");
 
     res.status(200).json({
       success: true,
@@ -183,14 +127,7 @@ teacherRoute.post(
               password: hashedPassword,
               role: "TEACHER",
             },
-            select: {
-              id: true,
-              firstname: true,
-              lastname: true,
-              username: true,
-              email: true,
-              phoneNumber: true,
-            },
+            select: facultySelectFields,
           });
 
           const createdProfile = await prisma.teacher.create({
@@ -227,16 +164,33 @@ teacherRoute.post(
 );
 
 teacherRoute.put(
-  "/update-faculty/:id",
+  "/update-faculty",
   TryCatch(async (req, res, next) => {
-    const id = Number(req.params.id); //convert to number
+    const id = Number(req.query.id); //convert to number
 
     const result = updateTeacherSchema.safeParse(req.body);
     if (!result.success)
       return next(new ErrorHandler("Validations Failed", 404));
 
-    const { newFirstname, newLastname, newEmail, newUsername, newPhoneNumber } =
-      result.data;
+    const {
+      newFirstname,
+      newLastname,
+      newEmail,
+      newUsername,
+      newCity,
+      newEmergencyName,
+      newCountry,
+      newEmergencyPhone,
+      newEmergencyRelation,
+      newExperience,
+      newGender,
+      newJoiningDate,
+      newQualification,
+      newStreet,
+      newZipCode,
+      newPhoneNumber,
+      newState,
+    } = result.data;
 
     const existingFaculty = await prisma.user.findUnique({
       where: { id },
@@ -253,15 +207,20 @@ teacherRoute.put(
         lastname: newLastname,
         phoneNumber: newPhoneNumber,
         username: newUsername,
+        gender: newGender,
+        qualification: newQualification,
+        joiningDate: newJoiningDate,
+        experience: newExperience,
+        street: newStreet,
+        state: newState,
+        city: newCity,
+        zipCode: newZipCode,
+        country: newCountry,
+        emergencyName: newEmergencyName,
+        emergencyPhone: newEmergencyPhone,
+        emergencyRelation: newEmergencyRelation,
       },
-      select: {
-        firstname: true,
-        lastname: true,
-        username: true,
-        email: true,
-        gender: true,
-        phoneNumber: true,
-      },
+      select: { ...facultySelectFields },
     });
 
     cache.del(FACULTY_CACHE_KEY);
@@ -311,51 +270,31 @@ teacherRoute.delete(
 );
 
 teacherRoute.delete(
-  "/delete-faculty",
+  "/delete-all-faculties",
   TryCatch(async (req, res, next) => {
-    const id = Number(req.query.id);
-    if (!id) return next(new ErrorHandler("ID is required", 400));
 
-    const removedFaculty = await prisma.user.delete({
-      where: { id },
-      select: {
-        firstname: true,
-        lastname: true,
-        username: true,
-        role: true,
-      },
+    const removedFaculty = await prisma.user.deleteMany({
+      where: { role: "TEACHER" },
     });
 
-    if (removedFaculty.role !== "TEACHER") {
-      return next(new ErrorHandler("User is not a faculty member", 403));
-    }
-
-    cache.del(FACULTY_CACHE_KEY);
+   cache.del(FACULTY_CACHE_KEY);
 
     return res.status(200).json({
       success: true,
-      message: `Faculty ${removedFaculty.firstname} ${removedFaculty.lastname} deleted successfully.`,
+      message: `Deleted ${removedFaculty.count} faculty member(s).`,
     });
   })
 );
 
 teacherRoute.get(
   "/faculty-details",
+  routeCache(80),
   TryCatch(async (req, res, next) => {
     const id = Number(req.query.id);
 
     const user = await prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        firstname: true,
-        lastname: true,
-        username: true,
-        email: true,
-        phoneNumber: true,
-        gender: true,
-        role: true,
-      },
+      select: { ...facultySelectFields },
     });
 
     if (!user) return next(new ErrorHandler("No user found", 404));
@@ -395,14 +334,7 @@ teacherRoute.get(
           in: teacherIds,
         },
       },
-      select: {
-        firstname: true,
-        lastname: true,
-        username: true,
-        email: true,
-        phoneNumber: true,
-        id: true,
-      },
+      select: { ...facultySelectFields },
     });
 
     res.status(200).json({

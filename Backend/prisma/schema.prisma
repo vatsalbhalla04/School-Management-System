@@ -60,7 +60,7 @@ model User {
 
   // Emergency contact
   emergencyName       String?
-  emergencyPhone      String?
+  emergencyPhone      BigInt?  @unique
   emergencyRelation   String?
 
   student             Student?
