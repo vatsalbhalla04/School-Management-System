@@ -292,6 +292,17 @@ subjectRoute.get(
             },
           },
         },
+        standard:{
+          select:{
+            id: true, 
+             StdName: true, 
+            sections: {
+              select:{
+                SecName:true, 
+              }
+            }
+          }
+        }
       },
     });
 
