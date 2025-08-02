@@ -3,6 +3,9 @@ import { Router } from "express";
 import { TryCatch } from "../../../middleware/error.js";
 import ErrorHandler from "../../../utils/utility.js";
 import subjectRouteValidations from "../../../validators/admin/subject.validator.js";
+import {
+  facultySelectFields,
+} from "../../../constants/admin/teacher.prisma.js";
 
 const { PrismaClient } = pkg;
 
@@ -19,25 +22,42 @@ subjectRoute.post(
 
     const { SubjectName, teacherUsername, StdName } = result.data;
 
-    if (!SubjectName || !teacherUsername || !StdName)
-      return next(new ErrorHandler("All Fields Are Required", 400));
-
     const standard = await prisma.standard.findUnique({
       where: { StdName },
     });
 
     if (!standard) return next(new ErrorHandler("Standard Not Found ", 404));
 
-    const teacherUser = await prisma.user.findUnique({
-      where: { username: teacherUsername },
-    });
+    let subjectTeacher = null ;
+    if(teacherUsername) {
+      const teacher = await prisma.user.findUnique({
+        where:{
+          username : teacherUsername
+        }
+      }); 
 
-    if (!teacherUser || teacherUser.role !== "TEACHER")
-      return next(new ErrorHandler("Teacher Not Valid", 400));
+      if(!teacher || teacher.role !== "TEACHER") return next(new ErrorHandler("Teacher Not Found",404)); 
 
-    const faculty = await prisma.teacher.findUnique({
-      where: { teacherId: teacherUser.id },
-    });
+      subjectTeacher = await prisma.teacher.findUnique({
+        where : {
+          teacherId : teacher.id
+        }
+      }) ; 
+
+      if(!subjectTeacher) return next(new ErrorHandler("Teacher profile not found", 404));
+
+      const alreadyAssigned = await prisma.subject.findFirst({
+        where:{
+          teacherId : subjectTeacher.id, 
+        }
+      });
+
+      if(alreadyAssigned)  return next(
+        new ErrorHandler(
+          `Faculty ${subjectTeacher} is already assigned to Standard ${standard.StdName}`
+        )
+      );
+    }
 
     const existingSubject = await prisma.subject.findFirst({
       where: {
@@ -57,21 +77,22 @@ subjectRoute.post(
     const addSubject = await prisma.subject.create({
       data: {
         name: SubjectName,
-        teacherId: faculty.id,
+        teacherId : subjectTeacher ? subjectTeacher.id : null,
         standardId: standard.id,
       },
       select: {
         name: true,
-        teacher: {
-          select: {
-            teacher: {
-              select: {
-                firstname: true,
-                lastname: true,
-                username: true,
-              },
-            },
-          },
+        teacher:{
+          select:{
+            teacher:{
+              select:{
+                id : true, 
+                username : true,
+                firstname: true, 
+                lastname: true, 
+              }
+            }
+          }
         },
         standard: {
           select: {
@@ -83,69 +104,71 @@ subjectRoute.post(
 
     res.status(200).json({
       success: true,
-      message: `Subject ${SubjectName} created successfully under standard ${standard.StdName} and assigned to ${teacherUser.username}`,
+      message: `Subject ${SubjectName} created successfully under standard ${standard.StdName} and assigned to ${teacherUsername ? `whose assigned subject Teacher is ${subjectTeacher}`:""}`,
       addSubject,
     });
   })
 );
 
 subjectRoute.put(
-  "/update-subject-details/:id",
+  "/update-subject-details",
   TryCatch(async (req, res, next) => {
     const result = subjectRouteValidations.safeParse(req.body);
     if (!result.success)
       return next(new ErrorHandler("Validations Failed", 404));
 
-    const id = Number(req.params.id);
-
+    const id = Number(req.query.id);
     const { newSubjectName, newStd, newFacultyAssigned } = result.data;
 
-    const subject = await prisma.subject.findUnique({
-      where: { id },
-    });
-
+    const subject = await prisma.subject.findUnique({ where: { id } });
     if (!subject) return next(new ErrorHandler("No Subject Found", 404));
 
-    const standard = await prisma.standard.findUnique({
-      where: {
-        StdName: newStd,
-      },
-    });
+    const dataToUpdate = {};
 
-    if (!standard) return next(new ErrorHandler("Standard not found", 404));
+    if (newSubjectName && newSubjectName !== subject.name) {
+      dataToUpdate.name = newSubjectName;
+    }
 
-    const user = await prisma.user.findUnique({
-      where: {
-        username: newFacultyAssigned,
-      },
-    });
+    if (newStd) {
+      const standard = await prisma.standard.findUnique({
+        where: { StdName: newStd },
+      });
 
-    if (!user || user.role !== "TEACHER")
-      return next(new ErrorHandler("Teacher Not Found"));
+      if (!standard) return next(new ErrorHandler("Standard not found", 404));
+      if (standard.id !== subject.standardId) {
+        dataToUpdate.standard = { connect: { id: standard.id } };
+      }
+    }
 
-    const teacher = await prisma.teacher.findUnique({
-      where: { teacherId: user.id },
-    });
+    if (newFacultyAssigned) {
+      const user = await prisma.user.findUnique({
+        where: { username: newFacultyAssigned },
+      });
 
-    if (!teacher)
-      return next(new ErrorHandler("No Teacher Profile found", 404));
+      if (!user || user.role !== "TEACHER") {
+        return next(new ErrorHandler("Teacher Not Found", 404));
+      }
 
-    if (
-      subject.name === newSubjectName &&
-      standard.StdName === newStd &&
-      teacher.username === newFacultyAssigned
-    )
-      return next(new ErrorHandler("Nothing to change", 200));
+      const teacher = await prisma.teacher.findUnique({
+        where: { teacherId: user.id },
+      });
 
-    const updateSubjectDetails = await prisma.subject.update({
-      where: {
-        id,
-      },
-      data: {
-        name: newSubjectName,
-        standard: { connect: { id: standard.id } },
-        teacher: { connect: { id: teacher.id } },
-      },
+      if (!teacher) {
+        return next(new ErrorHandler("No Teacher Profile found", 404));
+      }
+
+      if (teacher.id !== subject.teacherId) {
+        dataToUpdate.teacher = { connect: { id: teacher.id } };
+      }
+    }
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      return next(new ErrorHandler("Nothing to change", 400));
+    }
+
+    const updatedSubject = await prisma.subject.update({
+      where: { id },
+      data: dataToUpdate,
       select: {
         name: true,
         standard: {
@@ -156,11 +179,11 @@ subjectRoute.put(
         teacher: {
           select: {
             teacher: {
-              select: {
-                id: true,
-                firstname: true,
-                lastname: true,
-                username: true,
+              select:{
+                id: true, 
+                username: true, 
+                firstname: true, 
+                lastname: true
               },
             },
           },
@@ -170,20 +193,20 @@ subjectRoute.put(
 
     res.status(200).json({
       success: true,
-      message: "Details Updated Succesfully",
-      Update_Subject_Details: updateSubjectDetails,
+      message: "Subject updated successfully",
+      Update_Subject_Details: updatedSubject,
     });
   })
 );
 
 subjectRoute.delete(
-  "/delete-subject/:id",
+  "/delete-subject",
   TryCatch(async (req, res, next) => {
-    const id = Number(req.params.id);
+    const id = Number(req.query.id);
 
     const subject = await prisma.subject.findUnique({
       where: {
-        id,
+        id
       },
     });
 
@@ -221,13 +244,11 @@ subjectRoute.get(
     const subjectDetails = await prisma.subject.findMany({
       select: {
         name: true,
+        id: true,
         teacher: {
           select: {
             teacher: {
-              select: {
-                firstname: true,
-                lastname: true,
-              },
+              select: facultySelectFields,
             },
           },
         },
@@ -250,9 +271,9 @@ subjectRoute.get(
 );
 
 subjectRoute.get(
-  "/subject-details/:id",
+  "/subject-details",
   TryCatch(async (req, res, next) => {
-    const id = Number(req.params.id);
+    const id = Number(req.query.id);
 
     const subject = await prisma.subject.findUnique({
       where: { id },
@@ -267,14 +288,7 @@ subjectRoute.get(
         teacher: {
           select: {
             teacher: {
-              select: {
-                id: true,
-                firstname: true,
-                lastname: true,
-                username: true,
-                phoneNumber: true,
-                email: true,
-              },
+              select: facultySelectFields,
             },
           },
         },
@@ -283,7 +297,7 @@ subjectRoute.get(
 
     res.status(200).json({
       success: true,
-      message: `Fetched Single Subjects Details Succesfully`,
+      message: `Fetched Single Subjects Details Succesfully `,
       data: subjectDetails,
     });
   })

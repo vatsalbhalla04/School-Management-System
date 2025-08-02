@@ -1,8 +1,9 @@
 import pkg from "@prisma/client";
 import { Router } from "express";
+import { facultySelectFields } from "../../../constants/admin/teacher.prisma.js";
 import { TryCatch } from "../../../middleware/error.js";
 import ErrorHandler from "../../../utils/utility.js";
-import sectionValidation from "../../../validators/admin/section.validator.js";
+import { sectionValidation, updateSecValidations } from "../../../validators/admin/section.validator.js";
 
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
@@ -95,16 +96,16 @@ sectionRoute.post(
 );
 
 sectionRoute.put(
-  "/update-section-details/:id",
+  "/update-section-details",
   TryCatch(async (req, res, next) => {
-    const result = sectionValidation.safeParse(req.body);
+    const result = updateSecValidations.safeParse(req.body);
 
     if (!result.success)
-      return next(new ErrorHandler("Validations Failed", 404));
+    return next(new ErrorHandler("Validations Failed", 404));
 
-    const id = Number(req.params.id);
+    const id = Number(req.query.id);
 
-    const { StdName, SecName, classTeacherUsername } = result.data;
+    const {newSecName, newStdName, newClassTeacherUserName} = result.data;
 
     //find the section Id :
     const section = await prisma.section.findUnique({
@@ -113,88 +114,94 @@ sectionRoute.put(
 
     if (!section) return next(new ErrorHandler("No section found", 404));
 
-    const std = await prisma.standard.findUnique({
-      where: { StdName },
-    });
+    let std = null; 
+    let targetStdId = section.standardId;
+    if(newStdName){
+      std = await prisma.standard.findUnique({
+        where:{
+          StdName : newStdName
+        }
+      }); 
+      if(!std) return next(new ErrorHandler("No Standard Found",404)); 
 
-    if (!std) return next(new ErrorHandler("No such standard found", 404));
-
-    const existingSection = await prisma.section.findFirst({
-      where: {
-        SecName,
-        standardId: section.id,
-        NOT: { id: section.id },
-      },
-    });
-
-    if (existingSection)
-      return next(
-        new ErrorHandler(
-          "Another section with this name already exists in the same standard.",
-          400
-        )
-      );
-
-    //Optional Teacher update :
-    let classTeacher = undefined;
-    if (classTeacherUsername) {
-      const teacher = await prisma.user.findUnique({
-        where: { username: classTeacherUsername },
-      });
-
-      if (!teacher || teacher.role !== "TEACHER")
-        return next(new ErrorHandler("Class Teacher Not Valid", 404));
-
-      const faculty = await prisma.teacher.findUnique({
-        where: {
-          teacherId: teacher.id,
-        },
-      });
-
-      if (!faculty)
-        return next(new ErrorHandler("Teacher record not found", 404));
-
-      classTeacher = faculty.id;
+      targetStdId = std.id
     }
 
-    const updateSection = await prisma.section.update({
-      where: {
-        id,
-      },
-      data: {
-        SecName,
-        classTeacher: classTeacher
-          ? { connect: { id: classTeacher } }
-          : undefined,
-        standard: { connect: { id: std.id } },
-      },
-      include: {
-        classTeacher: {
-          select: {
-            teacher: {
-              select: {
-                firstname: true,
-                lastname: true,
-                username: true,
-              },
-            },
+    // class Teacher: 
+    let classTeacher = undefined; 
+    if(newClassTeacherUserName){
+      const teacher = await prisma.user.findUnique({
+        where: {
+          username : newClassTeacherUserName
+        }
+      }); 
+      if(!teacher || teacher.role != "TEACHER") return next(new ErrorHandler("Class Teacher Not Valid",404)); 
+
+      const faculty = await prisma.teacher.findUnique({
+        where:{
+          teacherId : teacher.id, 
+        }
+      }); 
+
+      if(!faculty) return next(new ErrorHandler("Teacher Not Found",404)); 
+
+      classTeacher = faculty.id
+      
+      const existingSecWithTeacher = await prisma.section.findFirst({
+        where:{
+          standardId : targetStdId, 
+          classTeacher : {
+            id : classTeacher
           },
-        },
-      },
-    });
+          NOT:{id}
+        }
+      }); 
+
+      if(existingSecWithTeacher){
+        return next(new ErrorHandler( `This teacher is already assigned to section '${existingSecWithTeacher.SecName}' of this standard.`,
+        400))
+      }
+    }; 
+
+    const updateSection = await prisma.section.update({
+      where:{
+        id
+      }, 
+      data:{
+        SecName : newSecName ?? undefined, // only update if provided
+        classTeacher: classTeacher
+        ? { connect: { id: classTeacher } }
+        : undefined,
+      standard: std ? { connect: { id: std.id } } : undefined,
+      }, 
+      include:{
+        classTeacher:{
+          select:{
+            teacher:{
+              select:{
+                id: true, 
+                username: true, 
+                firstname: true, 
+                lastname:true
+              }
+            }
+          }
+        }
+      }
+    }); 
 
     res.status(200).json({
-      success: true,
-      Updated_Section_Details: updateSection,
-    });
+      success : true, 
+      Updated_Section_Details : updateSection
+    })
   })
 );
 
 sectionRoute.delete(
-  "/delete-section/:id",
+  "/delete-section",
   TryCatch(async (req, res, next) => {
 
-    const id = Number(req.params.id); 
+    const id = Number(req.query.id); 
 
     // Step 1: Find the standard by name
     const section = await prisma.section.findUnique({
@@ -249,11 +256,7 @@ sectionRoute.get(
         classTeacher: {
           select: {
             teacher: {
-              select: {
-                firstname: true, 
-                lastname: true,
-                username: true,
-              },
+              select: facultySelectFields,
             },
           },
         },

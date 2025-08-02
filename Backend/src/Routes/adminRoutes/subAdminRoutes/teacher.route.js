@@ -13,7 +13,7 @@ import cache from "../../../middleware/cacheInstance.js";
 import {
   facultySelectFields,
   facultyFields,
-} from "../../../constants/teacher.prisma.js";
+} from "../../../constants/admin/teacher.prisma.js";
 
 const FACULTY_CACHE_KEY = "/api/v1/admin/all-faculties";
 
@@ -60,7 +60,7 @@ teacherRoute.post(
         ...rest,
         username,
         email,
-        password,
+        password : hashedPassword,
         role: "TEACHER",
       },
       select: { ...facultySelectFields },
@@ -294,13 +294,16 @@ teacherRoute.get(
 
     const user = await prisma.user.findUnique({
       where: { id },
-      select: { ...facultySelectFields },
+     select:{
+      ...facultySelectFields,
+      role: true,
+     }
     });
 
     if (!user) return next(new ErrorHandler("No user found", 404));
 
     if (user.role !== "TEACHER")
-      return next(new ErrorHandler("User is not a teacher", 403));
+      return next(new ErrorHandler(`User is not a teacher with id: ${user.id}`, 403));
 
     res.status(200).json({
       success: true,

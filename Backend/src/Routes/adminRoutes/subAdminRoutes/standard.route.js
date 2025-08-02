@@ -1,6 +1,5 @@
 import pkg from "@prisma/client";
 import { Router } from "express";
-import { success } from "zod";
 import { TryCatch } from "../../../middleware/error.js";
 import ErrorHandler from "../../../utils/utility.js";
 import stdValidations from "../../../validators/admin/standard.validator.js";
@@ -37,9 +36,9 @@ standardRoute.post(
 );
 
 standardRoute.delete(
-  "/delete-std/:id",
+  "/delete-std",
   TryCatch(async (req, res, next) => {
-    const id = Number(req.params.id);
+    const id = Number(req.query.id);
 
     const existingStd = await prisma.standard.findUnique({
       where: { id },

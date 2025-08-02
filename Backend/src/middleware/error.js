@@ -9,6 +9,7 @@ function TryCatch(passedFun) { // higher Order Function
     }
   };
 }
+
 function errorMiddleware(err, req, res, next) {
   if (err.code === "P2002") {
     return res.status(409).json({
@@ -18,7 +19,7 @@ function errorMiddleware(err, req, res, next) {
   }
 
   const statusCode = err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
+  let message = err.message || "Internal Server Error";
 
   if(message.includes("Invalid Prisma")){
     message = beautifyPrismaError(message);
@@ -29,6 +30,5 @@ function errorMiddleware(err, req, res, next) {
     message,
   });
 }
-
 
 export { TryCatch, errorMiddleware };
