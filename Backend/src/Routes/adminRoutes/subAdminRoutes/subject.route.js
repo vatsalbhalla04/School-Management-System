@@ -243,8 +243,8 @@ subjectRoute.get(
   TryCatch(async (req, res, next) => {
     const subjectDetails = await prisma.subject.findMany({
       select: {
-        name: true,
         id: true,
+        name: true,
         teacher: {
           select: {
             teacher: {
@@ -252,6 +252,17 @@ subjectRoute.get(
             },
           },
         },
+        standard:{
+          select:{
+            id: true, 
+             StdName: true, 
+            sections: {
+              select:{
+                SecName:true, 
+              }
+            }
+          }
+        }
       },
     });
 
@@ -273,6 +284,7 @@ subjectRoute.get(
 subjectRoute.get(
   "/subject-details",
   TryCatch(async (req, res, next) => {
+    
     const id = Number(req.query.id);
 
     const subject = await prisma.subject.findUnique({

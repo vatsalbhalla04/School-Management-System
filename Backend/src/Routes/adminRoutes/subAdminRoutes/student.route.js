@@ -10,8 +10,12 @@ const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
 studentRoute.post(
-  "/add-students/secName/:id",
-  TryCatch(async (req, res, next) => {})
+  "/add-students/secName",
+  TryCatch(async (req, res, next) => {
+    const id = Number(req.query.id); 
+
+
+  })
 );
 
 studentRoute.put(
@@ -36,7 +40,9 @@ studentRoute.get(
 
 studentRoute.get(
   "/all-students",
-  TryCatch(async (req, res, next) => {})
+  TryCatch(async (req, res, next) => {
+    
+  })
 );
 
 export default studentRoute;
