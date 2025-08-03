@@ -323,32 +323,35 @@ teacherRoute.get(
   "/all-faculties",
   routeCache(80),
   TryCatch(async (req, res, next) => {
-    const teachers = await prisma.user.findMany({
+
+    const page = Number(req.query.page) || 1; 
+    const limit = 8; 
+    const skip = (page - 1) *limit; 
+
+    const teachers = await prisma.user.count({
       where: { role: "TEACHER" },
     });
 
-    if (teachers.length === 0) {
+    if (teachers === 0) {
       return res.status(204).json({
         success: true,
         message: "No Faculties available yet. Add some.",
         data: [],
       });
-    }
-
-    const teacherIds = teachers.map((t) => t.id);
+    }; 
 
     const allFaultyDetails = await prisma.user.findMany({
-      where: {
-        id: {
-          in: teacherIds,
-        },
-      },
+      where: {role : "TEACHER"},
       select: { ...facultySelectFields },
+      skip, 
+      take: limit
     });
 
     res.status(200).json({
       success: true,
       Total: `Total Number of Faculties ${allFaultyDetails.length}`,
+      currentPage : page, 
+      totalPages : Math.ceil(teachers/limit),
       Data: allFaultyDetails,
     });
   })

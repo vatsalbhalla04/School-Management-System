@@ -34,6 +34,7 @@ app.use('/api/v1/auth',authRoute);
 app.use('/api/v1/admin',adminRoute); 
 app.use(errorMiddleware)
 
+
 app.listen(3000,()=>{
     console.log("Server Running On Port 3000");
 });

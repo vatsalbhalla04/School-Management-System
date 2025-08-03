@@ -131,7 +131,7 @@ standardRoute.get(
 
     res.status(200).json({
       success: true, 
-      message : `Succesfully Fetched the Details for ${getStdDetails.StdName} , which has total ${getStdDetails.sections.length} sections and ${getStdDetails.subjects.length} total subjects`, 
+      message : `Succesfully Fetched the Details for ${getStdDetails.StdName} standard, which has total ${getStdDetails.sections.length} sections and ${getStdDetails.subjects.length} total subjects`, 
       Standard_Details : getStdDetails
     })
   })
@@ -141,7 +141,15 @@ standardRoute.get(
   "/all-standards",
   routeCache(80),
   TryCatch(async (req, res, next) => {
+    const page = Number(req.query.page); 
+    const limit = 5; 
+    const skip = (page - 1) *limit; 
+  
+    const totalStd = await prisma.standard.count({}); 
+
     const allstds = await prisma.standard.findMany({
+      skip, 
+      take: limit, 
       select:{
         id : true,
         StdName : true, 
@@ -185,7 +193,9 @@ standardRoute.get(
 
     res.status(200).json({
       success: true,
-      total: `Total Standards: ${allstds.length}`,
+      total: `Total Standards: ${totalStd}`,
+      currentPage : page, 
+      totalPages : Math.ceil(totalStd/limit), 
       standards: allstds,
     });
   })

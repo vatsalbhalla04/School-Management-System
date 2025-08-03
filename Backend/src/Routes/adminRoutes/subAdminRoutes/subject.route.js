@@ -250,48 +250,6 @@ subjectRoute.delete(
   })
 );
 
-subjectRoute.get(
-  "/all-subjects",routeCache(80),
-  TryCatch(async (req, res, next) => {
-    const subjectDetails = await prisma.subject.findMany({
-      select: {
-        id: true,
-        name: true,
-        teacher: {
-          select: {
-            teacher: {
-              select: facultySelectFields,
-            },
-          },
-        },
-        standard:{
-          select:{
-            id: true, 
-             StdName: true, 
-            sections: {
-              select:{
-                SecName:true, 
-              }
-            }
-          }
-        }
-      },
-    });
-
-    if (subjectDetails.length === 0) {
-      res.status(200).json({
-        success: true,
-        message: "No Subjects Added",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: `Total subjects are ${subjectDetails.length}`,
-      data: subjectDetails,
-    });
-  })
-);
 
 subjectRoute.get(
   "/subject-details", routeCache(80),
@@ -334,6 +292,59 @@ subjectRoute.get(
     res.status(200).json({
       success: true,
       message: `Fetched Single Subjects Details Succesfully `,
+      data: subjectDetails,
+    });
+  })
+);
+
+subjectRoute.get(
+  "/all-subjects",routeCache(80),
+  TryCatch(async (req, res, next) => {
+    const page = Number(req.query.page); 
+    const limit = 5; 
+    const skip = (page -1) * limit; 
+
+    const totalSub = await prisma.subject.count({})
+
+    const subjectDetails = await prisma.subject.findMany({
+      skip, 
+      take: limit, 
+      select: {
+        id: true,
+        name: true,
+        teacher: {
+          select: {
+            teacher: {
+              select: facultySelectFields,
+            },
+          },
+        },
+        standard:{
+          select:{
+            id: true, 
+             StdName: true, 
+            sections: {
+              select:{
+                SecName:true, 
+              }
+            }
+          }
+        }
+      },
+    });
+
+    if (subjectDetails.length === 0) {
+      res.status(200).json({
+        success: true,
+        message: "No Subjects Added",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Total subjects are ${totalSub}`,
+      currentPage : page, 
+      totalPages: Math.ceil(totalSub/limit), 
       data: subjectDetails,
     });
   })
