@@ -45,7 +45,7 @@ studentRoute.get(
 );
 
 studentRoute.get(
-  "/all-stundets/stdName".routeCache(80),
+  "/all-stundets/stdName",routeCache(80),
   TryCatch(async (req, res, next) => {})
 );
 
