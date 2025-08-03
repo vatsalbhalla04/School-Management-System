@@ -2,6 +2,7 @@ import { Router } from "express";
 import { TryCatch } from "../../../middleware/error.js";
 import pkg from "@prisma/client";
 import ErrorHandler from "../../../utils/utility.js";
+import routeCache from "../../../middleware/routeCache.js";
 // import hashPassword from "../../../utils/password.js";
 
 const { PrismaClient } = pkg;
@@ -49,7 +50,7 @@ const adminProfile = Router();
 // );
 
 adminProfile.get(
-  "/admin-profile",
+  "/admin-profile",routeCache(80),
   TryCatch(async (req, res, next) => {
     const adminId = req.user.id;
 

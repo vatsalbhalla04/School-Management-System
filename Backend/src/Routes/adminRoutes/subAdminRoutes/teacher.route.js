@@ -1,5 +1,11 @@
+import pkg from "@prisma/client";
 import { Router } from "express";
+import {
+  facultyFields,
+  facultySelectFields,
+} from "../../../constants/admin/teacher.prisma.js";
 import { TryCatch } from "../../../middleware/error.js";
+import routeCache from "../../../middleware/routeCache.js";
 import hashPassword from "../../../utils/password.js";
 import ErrorHandler from "../../../utils/utility.js";
 import {
@@ -7,15 +13,8 @@ import {
   addFacultySchema,
   updateTeacherSchema,
 } from "../../../validators/admin/teacher.validator.js";
-import pkg from "@prisma/client";
-import routeCache from "../../../middleware/routeCache.js";
-import cache from "../../../middleware/cacheInstance.js";
-import {
-  facultySelectFields,
-  facultyFields,
-} from "../../../constants/admin/teacher.prisma.js";
-
-const FACULTY_CACHE_KEY = "/api/v1/admin/all-faculties";
+import clearCache from "../../../utils/cacheUtils.js";
+import { FACULTY_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
 
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
@@ -72,7 +71,8 @@ teacherRoute.post(
       },
     });
 
-    cache.del(FACULTY_CACHE_KEY);
+    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE); 
+    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE); 
 
     res.status(200).json({
       success: true,
@@ -114,7 +114,7 @@ teacherRoute.post(
           if (exists) {
             failed.push({
               username: teacher.username,
-              reason: "Username, Email, Phone Number or  already exists",
+              reason: "Username, Email or Phone Number already exists",
             });
             return null;
           }
@@ -152,7 +152,10 @@ teacherRoute.post(
 
     const created = usersData.filter(Boolean); // remove nulls
 
-    if (created.length > 0) cache.del(FACULTY_CACHE_KEY);
+    if (created.length > 0) {
+      clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE); 
+      clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE); 
+    }
 
     res.status(207).json({
       success: true,
@@ -223,7 +226,8 @@ teacherRoute.put(
       select: { ...facultySelectFields },
     });
 
-    cache.del(FACULTY_CACHE_KEY);
+    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE,id); 
+    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE,id); 
 
     res.status(200).json({
       success: true,
@@ -260,7 +264,8 @@ teacherRoute.delete(
       },
     });
 
-    cache.del(FACULTY_CACHE_KEY);
+    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE,id); 
+    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE,id); 
 
     res.status(200).json({
       success: true,
@@ -277,7 +282,8 @@ teacherRoute.delete(
       where: { role: "TEACHER" },
     });
 
-   cache.del(FACULTY_CACHE_KEY);
+    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE); 
+    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE); 
 
     return res.status(200).json({
       success: true,

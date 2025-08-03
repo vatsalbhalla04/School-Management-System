@@ -6,6 +6,9 @@ import subjectRouteValidations from "../../../validators/admin/subject.validator
 import {
   facultySelectFields,
 } from "../../../constants/admin/teacher.prisma.js";
+import routeCache from "../../../middleware/routeCache.js";
+import clearCache from "../../../utils/cacheUtils.js";
+import { SUBJECT_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
 
 const { PrismaClient } = pkg;
 
@@ -102,6 +105,9 @@ subjectRoute.post(
       },
     });
 
+    clearCache(SUBJECT_CACHE_KEYS.SUBJECT_CACHE); 
+    clearCache(SUBJECT_CACHE_KEYS.ALL_SUBJECTS_CACHE); 
+
     res.status(200).json({
       success: true,
       message: `Subject ${SubjectName} created successfully under standard ${standard.StdName} and assigned to ${teacherUsername ? `whose assigned subject Teacher is ${subjectTeacher}`:""}`,
@@ -191,6 +197,9 @@ subjectRoute.put(
       },
     });
 
+    clearCache(SUBJECT_CACHE_KEYS.SUBJECT_CACHE,id); 
+    clearCache(SUBJECT_CACHE_KEYS.ALL_SUBJECTS_CACHE); 
+
     res.status(200).json({
       success: true,
       message: "Subject updated successfully",
@@ -230,6 +239,9 @@ subjectRoute.delete(
       },
     });
 
+    clearCache(SUBJECT_CACHE_KEYS.SUBJECT_CACHE,id); 
+    clearCache(SUBJECT_CACHE_KEYS.ALL_SUBJECTS_CACHE); 
+
     res.status(200).json({
       success: true,
       message: "Subject Deleted Sucesfully",
@@ -239,7 +251,7 @@ subjectRoute.delete(
 );
 
 subjectRoute.get(
-  "/all-subjects",
+  "/all-subjects",routeCache(80),
   TryCatch(async (req, res, next) => {
     const subjectDetails = await prisma.subject.findMany({
       select: {
@@ -282,9 +294,9 @@ subjectRoute.get(
 );
 
 subjectRoute.get(
-  "/subject-details",
+  "/subject-details", routeCache(80),
   TryCatch(async (req, res, next) => {
-    
+
     const id = Number(req.query.id);
 
     const subject = await prisma.subject.findUnique({
@@ -294,6 +306,7 @@ subjectRoute.get(
     if (!subject) return next(new ErrorHandler("No Subject Found", 404));
 
     const subjectDetails = await prisma.subject.findFirst({
+      where: { id }, 
       select: {
         id: true,
         name: true,

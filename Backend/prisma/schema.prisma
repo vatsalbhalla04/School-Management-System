@@ -75,6 +75,9 @@ model Student {
   sectionId           Int
   section             Section  @relation(fields: [sectionId], references: [id])
   mark                Mark[]
+
+  @@index([sectionId])
+
 }
 
 model Teacher {
@@ -93,10 +96,13 @@ model Section {
   standard            Standard  @relation(fields: [standardId], references: [id])
   students            Student[]
   classTeacherId      String?
-  classTeacher        Teacher?          @relation("Section_classTeacher", fields: [classTeacherId], references: [id], onDelete: SetNull)
+  classTeacher        Teacher? @relation("Section_classTeacher", fields: [classTeacherId], references: [id], onDelete: SetNull)
   assignments         SubjectAssignment[] // New: subjects taught in this section
 
-  @@unique([classTeacherId])
+  @@index([standardId])
+  @@index([classTeacherId])
+  @@unique([standardId,SecName])
+  // @@unique([classTeacherId])
 
 }
 
@@ -116,6 +122,10 @@ model Subject {
   standard          Standard  @relation(fields: [standardId], references: [id])
   marks             Mark[]
   assignments       SubjectAssignment[] // New: link to Sections
+
+  @@index([standardId])
+  @@index([teacherId])
+
 }
 
 model SubjectAssignment {
@@ -128,6 +138,11 @@ model SubjectAssignment {
   section            Section  @relation(fields: [sectionId], references: [id])
 
   @@unique([teacherId, subjectId, sectionId])
+
+  @@index([sectionId])
+  @@index([teacherId])
+  @@index([subjectId])
+
 }
 
 model Mark {
