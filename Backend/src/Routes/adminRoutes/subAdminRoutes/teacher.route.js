@@ -303,6 +303,35 @@ teacherRoute.get(
      select:{
       ...facultySelectFields,
       role: true,
+      teacher:{
+        select:{
+          classSections:{
+             select:{
+              standard:{
+                  select:{
+                    StdName  :true
+                  }
+              },
+              SecName: true,
+             }
+          },
+            subjects:{
+              select:{
+                name: true, 
+                standard:{
+                    select:{
+                       StdName: true, 
+                       sections:{
+                         select:{
+                           SecName: true
+                         }
+                       }
+                    }
+                }
+              }
+            }
+        }
+      }
      }
     });
 
@@ -342,14 +371,22 @@ teacherRoute.get(
 
     const allFaultyDetails = await prisma.user.findMany({
       where: {role : "TEACHER"},
-      select: { ...facultySelectFields },
       skip, 
-      take: limit
+      take: limit, 
+      select: { 
+        id : true, 
+        firstname : true, 
+        lastname : true, 
+        qualification : true,
+        email : true, 
+        username : true, 
+        phoneNumber : true, 
+       },
     });
 
     res.status(200).json({
       success: true,
-      Total: `Total Number of Faculties ${allFaultyDetails.length}`,
+      Total: `Total Number of Faculties are ${teachers}`,
       currentPage : page, 
       totalPages : Math.ceil(teachers/limit),
       Data: allFaultyDetails,

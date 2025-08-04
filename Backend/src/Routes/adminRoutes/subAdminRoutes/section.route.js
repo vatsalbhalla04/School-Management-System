@@ -291,8 +291,6 @@ sectionRoute.get(
       where:{id}, 
       select:{
         SecName : true, 
-        standard : true, 
-        classTeacherId: true, 
         classTeacher:{
           select:{
              teacher:{
@@ -301,10 +299,33 @@ sectionRoute.get(
                 username: true,
                  firstname: true, 
                  lastname : true, 
+                 qualification : true, 
               }
              }
           }
-        }
+        }, 
+        standard : {
+          select:{
+            StdName:true,
+              subjects:{
+                select:{
+                  name: true,
+                  teacher: {
+                    select:{
+                      teacher:{
+                        select:{
+                          firstname: true, 
+                          lastname: true, 
+                          username: true, 
+                          qualification: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+          }
+        }, 
       }
     }); 
 
@@ -336,7 +357,13 @@ sectionRoute.get(
         classTeacher: {
           select: {
             teacher: {
-              select: facultySelectFields,
+              select: {
+                id: true, 
+                firstname: true, 
+                lastname: true, 
+                username: true, 
+                qualification: true
+              },
             },
           },
         },
