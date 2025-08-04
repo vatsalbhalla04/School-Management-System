@@ -7,6 +7,7 @@ import routeCache from "../../../middleware/routeCache.js";
 import {facultySelectFields} from "../../../constants/admin/teacher.prisma.js";
 import clearCache from "../../../utils/cacheUtils.js";
 import { STANDARD_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
+import { tr } from "zod/locales";
 
 const standardRoute = Router();
 
@@ -85,7 +86,7 @@ standardRoute.delete(
 standardRoute.get(
   "/standard-details",
   routeCache(80),
-  TryCatch(async (req, res) => {
+  TryCatch(async (req, res,next) => {
     const id = Number(req.query.id); 
 
     const findStd = await prisma.standard.findUnique({
@@ -141,41 +142,28 @@ standardRoute.get(
   "/all-standards",
   routeCache(80),
   TryCatch(async (req, res, next) => {
-    
-    const page = Number(req.query.page) || 1; 
-    const limit = 5; 
-    const skip = (page - 1) *limit; 
   
-    const totalStd = await prisma.standard.count({}); 
-
     const allstds = await prisma.standard.findMany({
-      skip, 
-      take: limit, 
       select:{
         id : true,
         StdName : true, 
         subjects:{
-          select:{
-            id: true, 
-            name: true, 
-            teacherId: true,
-            teacher:{
-               select:{
-                teacher:{
-                  select: facultySelectFields
-                }
-               }
-            }
-          }
+         select:{
+          name: true,
+         }
         },
         sections:{
           select:{
             SecName : true, 
-            classTeacherId :true,
             classTeacher:{
               select:{
                 teacher:{
-                  select: facultySelectFields
+                  select: {
+                    id: true, 
+                    firstname : true, 
+                    lastname: true, 
+                    qualification: true,  
+                  }
                 }
               }
             }
@@ -194,8 +182,7 @@ standardRoute.get(
 
     res.status(200).json({
       success: true,
-      total: `Total Standards: ${totalStd} on page ${page}`,
-      totalPages : Math.ceil(totalStd/limit), 
+      total: `Total Standards: ${allstds.length}`,
       standards: allstds,
     });
   })
