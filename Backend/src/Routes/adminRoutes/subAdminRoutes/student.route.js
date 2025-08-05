@@ -108,34 +108,40 @@ studentRoute.put(
   "/updateStudent",
   TryCatch(async (req, res, next) => {
     const userId = Number(req.query.userId); 
-    
+
   })
 );
 
 studentRoute.delete(
-  "",
+  "/delete-student",
   TryCatch(async (req, res, next) => {
     const id = Number(req.query.id);
   })
 );
 
 studentRoute.delete(
-  "",
+  "/delete-allStudents",
   TryCatch(async (req, res, next) => {
-    const id = Number(req.query.id);
+    const sectionId = Number(req.query.sectionId);
   })
 );
 
+// All Students of particular section. 
 studentRoute.get(
-  "/all-students/secName",
+  "/all-students",
   routeCache(80),
-  TryCatch(async (req, res, next) => {})
+  TryCatch(async (req, res, next) => {
+    const sectionId = Number(req.query.sectionId); 
+  })
 );
 
+// All Students of particular Standard. 
 studentRoute.get(
-  "/all-stundets/stdName",
+  "/all-stundets",
   routeCache(80),
-  TryCatch(async (req, res, next) => {})
+  TryCatch(async (req, res, next) => {
+    const stdId = Number(req.query.stdId); 
+  })
 );
 
 export default studentRoute;

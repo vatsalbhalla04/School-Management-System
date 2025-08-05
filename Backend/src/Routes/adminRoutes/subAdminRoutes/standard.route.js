@@ -103,6 +103,7 @@ standardRoute.get(
         // count students under each section
         sections: {
           select: {
+            id: true,
             SecName: true,
             _count: {
               select: { students: true },
@@ -183,6 +184,7 @@ standardRoute.get(
         // count students under each section
         sections: {
           select: {
+            id: true,
             SecName: true,
             _count: {
               select: { students: true },
