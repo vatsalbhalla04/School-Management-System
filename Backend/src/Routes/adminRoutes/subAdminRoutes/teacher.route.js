@@ -19,10 +19,10 @@ import { FACULTY_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 const teacherRoute = Router();
+
 teacherRoute.post(
   "/add-faculty",
   TryCatch(async (req, res, next) => {
-
     const result = addFacultySchema.safeParse(req.body);
 
     if (!result.success) {
@@ -51,7 +51,7 @@ teacherRoute.post(
         message: "User with given username or email already exists.",
       });
     }
-
+    
     const hashedPassword = await hashPassword(password);
 
     const teacherUser = await prisma.user.create({
@@ -59,7 +59,7 @@ teacherRoute.post(
         ...rest,
         username,
         email,
-        password : hashedPassword,
+        password: hashedPassword,
         role: "TEACHER",
       },
       select: { ...facultySelectFields },
@@ -71,8 +71,8 @@ teacherRoute.post(
       },
     });
 
-    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE); 
-    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE); 
+    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE);
+    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
 
     res.status(200).json({
       success: true,
@@ -153,8 +153,8 @@ teacherRoute.post(
     const created = usersData.filter(Boolean); // remove nulls
 
     if (created.length > 0) {
-      clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE); 
-      clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE); 
+      clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE);
+      clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
     }
 
     res.status(207).json({
@@ -226,8 +226,8 @@ teacherRoute.put(
       select: { ...facultySelectFields },
     });
 
-    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE,id); 
-    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE,id); 
+    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE, id);
+    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE, id);
 
     res.status(200).json({
       success: true,
@@ -264,8 +264,8 @@ teacherRoute.delete(
       },
     });
 
-    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE,id); 
-    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE,id); 
+    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE, id);
+    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE, id);
 
     res.status(200).json({
       success: true,
@@ -277,13 +277,12 @@ teacherRoute.delete(
 teacherRoute.delete(
   "/delete-all-faculties",
   TryCatch(async (req, res, next) => {
-
     const removedFaculty = await prisma.user.deleteMany({
       where: { role: "TEACHER" },
     });
 
-    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE); 
-    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE); 
+    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE);
+    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
 
     return res.status(200).json({
       success: true,
@@ -300,45 +299,47 @@ teacherRoute.get(
 
     const user = await prisma.user.findUnique({
       where: { id },
-     select:{
-      ...facultySelectFields,
-      role: true,
-      teacher:{
-        select:{
-          classSections:{
-             select:{
-              standard:{
-                  select:{
-                    StdName  :true
-                  }
+      select: {
+        ...facultySelectFields,
+        role: true,
+        teacher: {
+          select: {
+            classSections: {
+              select: {
+                standard: {
+                  select: {
+                    StdName: true,
+                  },
+                },
+                SecName: true,
               },
-              SecName: true,
-             }
+            },
+            subjects: {
+              select: {
+                name: true,
+                standard: {
+                  select: {
+                    StdName: true,
+                    sections: {
+                      select: {
+                        SecName: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
-            subjects:{
-              select:{
-                name: true, 
-                standard:{
-                    select:{
-                       StdName: true, 
-                       sections:{
-                         select:{
-                           SecName: true
-                         }
-                       }
-                    }
-                }
-              }
-            }
-        }
-      }
-     }
+        },
+      },
     });
 
     if (!user) return next(new ErrorHandler("No user found", 404));
 
     if (user.role !== "TEACHER")
-      return next(new ErrorHandler(`User is not a teacher with id: ${user.id}`, 403));
+      return next(
+        new ErrorHandler(`User is not a teacher with id: ${user.id}`, 403)
+      );
 
     res.status(200).json({
       success: true,
@@ -352,10 +353,9 @@ teacherRoute.get(
   "/all-faculties",
   routeCache(80),
   TryCatch(async (req, res, next) => {
-
-    const page = Number(req.query.page) || 1; 
-    const limit = 8; 
-    const skip = (page - 1) *limit; 
+    const page = Number(req.query.page) || 1;
+    const limit = 8;
+    const skip = (page - 1) * limit;
 
     const teachers = await prisma.user.count({
       where: { role: "TEACHER" },
@@ -367,28 +367,47 @@ teacherRoute.get(
         message: "No Faculties available yet. Add some.",
         data: [],
       });
-    }; 
+    }
 
     const allFaultyDetails = await prisma.user.findMany({
-      where: {role : "TEACHER"},
-      skip, 
-      take: limit, 
-      select: { 
-        id : true, 
-        firstname : true, 
-        lastname : true, 
-        qualification : true,
-        email : true, 
-        username : true, 
-        phoneNumber : true, 
-       },
+      where: { role: "TEACHER" },
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        qualification: true,
+        email: true,
+        username: true,
+        phoneNumber: true,
+        teacher: {
+          select: {
+            subjects: {
+              select: {
+                name: true,
+                standard: {
+                  select: {
+                    StdName: true,
+                    sections: {
+                      select: {
+                        SecName: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     res.status(200).json({
       success: true,
       Total: `Total Number of Faculties are ${teachers}`,
-      currentPage : page, 
-      totalPages : Math.ceil(teachers/limit),
+      currentPage: page,
+      totalPages: Math.ceil(teachers / limit),
       Data: allFaultyDetails,
     });
   })

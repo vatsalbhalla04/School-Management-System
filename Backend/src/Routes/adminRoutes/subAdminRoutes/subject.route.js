@@ -250,7 +250,6 @@ subjectRoute.delete(
   })
 );
 
-
 subjectRoute.get(
   "/subject-details", routeCache(80),
   TryCatch(async (req, res, next) => {
