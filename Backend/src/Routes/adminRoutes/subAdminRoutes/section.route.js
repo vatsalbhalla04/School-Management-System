@@ -290,7 +290,43 @@ sectionRoute.get(
     const getDetails = await prisma.section.findUnique({
       where:{id}, 
       select:{
+        id: true,
         SecName : true, 
+        standard : {
+          select:{
+            StdName: true,
+            subjects:{
+              select:{
+                name: true,
+                teacher: {
+                  select:{
+                    teacher:{
+                      select:{
+                        firstname: true, 
+                        lastname: true, 
+                        username: true, 
+                        qualification: true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        students: {
+          select:{
+             student:{
+              select:{
+                id: true, 
+                firstname : true, 
+                lastname: true,
+                username: true, 
+                phoneNumber: true
+              }
+             }
+          }
+        },
         classTeacher:{
           select:{
              teacher:{
@@ -300,38 +336,17 @@ sectionRoute.get(
                  firstname: true, 
                  lastname : true, 
                  qualification : true, 
+                 phoneNumber: true,
               }
              }
           }
-        }, 
-        standard : {
-          select:{
-            StdName:true,
-              subjects:{
-                select:{
-                  name: true,
-                  teacher: {
-                    select:{
-                      teacher:{
-                        select:{
-                          firstname: true, 
-                          lastname: true, 
-                          username: true, 
-                          qualification: true
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-          }
-        }, 
+        },  
       }
     }); 
 
     res.status(200).json({
       success : true, 
-      message : `Succesfully Fetched the Details for section ${getDetails.SecName} of standard ${getDetails.standard.StdName} where the Class Teacher is ${getDetails.classTeacher.teacher.firstname} ${getDetails.classTeacher.teacher.lastname}`, 
+      message: `Section ${getDetails.SecName} (Std ${getDetails.standard.StdName}) —> Class Teacher: ${getDetails.classTeacher.teacher.firstname} ${getDetails.classTeacher.teacher.lastname}, Total Students: ${getDetails.students.length} and Total Subject: ${getDetails.standard.subjects.length}`,
       Section_Details : getDetails
     })
   })
@@ -351,9 +366,17 @@ sectionRoute.get(
       skip, 
       take: limit, 
       select: {
-        id: true,
         SecName: true,
-        classTeacherId  : true, 
+        _count:{
+          select:{
+            students: true
+          }
+        },
+        standard: {
+          select: {
+            StdName: true,
+          },
+        },
         classTeacher: {
           select: {
             teacher: {
@@ -365,12 +388,6 @@ sectionRoute.get(
                 qualification: true
               },
             },
-          },
-        },
-        standard: {
-          select: {
-            id: true,
-            StdName: true,
           },
         },
       },
@@ -388,7 +405,7 @@ sectionRoute.get(
       message: `Total Sections ${totalSec}`,
       currentPage : page, 
       totalPage: Math.ceil(totalSec/limit),
-      Section: allSections,
+      Section: allSections
     });
   })
 );

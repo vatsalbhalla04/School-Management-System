@@ -4,7 +4,7 @@ import { TryCatch } from "../../../middleware/error.js";
 import ErrorHandler from "../../../utils/utility.js";
 import stdValidations from "../../../validators/admin/standard.validator.js";
 import routeCache from "../../../middleware/routeCache.js";
-import {facultySelectFields} from "../../../constants/admin/teacher.prisma.js";
+import { facultySelectFields } from "../../../constants/admin/teacher.prisma.js";
 import clearCache from "../../../utils/cacheUtils.js";
 import { STANDARD_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
 import { tr } from "zod/locales";
@@ -33,8 +33,8 @@ standardRoute.post(
       data: { StdName: stdName },
     });
 
-    clearCache(STANDARD_CACHE_KEYS.STANDARD_CACHE); 
-    clearCache(STANDARD_CACHE_KEYS.ALL_STANDARD_CACHE); 
+    clearCache(STANDARD_CACHE_KEYS.STANDARD_CACHE);
+    clearCache(STANDARD_CACHE_KEYS.ALL_STANDARD_CACHE);
 
     res.status(200).json({
       success: true,
@@ -73,68 +73,102 @@ standardRoute.delete(
       },
     });
 
-    clearCache(STANDARD_CACHE_KEYS.STANDARD_CACHE,id); 
-    clearCache(STANDARD_CACHE_KEYS.ALL_STANDARD_CACHE)
+    clearCache(STANDARD_CACHE_KEYS.STANDARD_CACHE, id);
+    clearCache(STANDARD_CACHE_KEYS.ALL_STANDARD_CACHE);
 
     res.status(200).json({
       success: true,
       message: `${removeStd.StdName} standard deleted successfully`,
     });
   })
-)
+);
 
 standardRoute.get(
   "/standard-details",
   routeCache(80),
-  TryCatch(async (req, res,next) => {
-    const id = Number(req.query.id); 
+  TryCatch(async (req, res, next) => {
+    const id = Number(req.query.id);
 
     const findStd = await prisma.standard.findUnique({
-      where: {id}, 
-    }); 
-
-    if(!findStd) return next(new ErrorHandler("No Standard Found",404)); 
-
-    const getStdDetails = await prisma.standard.findUnique({
-      where :{id}, 
-      select:{
-        id : true,
-        StdName : true, 
-        subjects:{
-          select:{
-            id: true, 
-            name: true, 
-            teacherId: true,
-            teacher:{
-               select:{
-                teacher:{
-                  select: facultySelectFields
-                }
-               }
-            }
-          }
-        },
-        sections:{
-          select:{
-            SecName : true, 
-            classTeacherId :true,
-            classTeacher:{
-              select:{
-                teacher:{
-                  select: facultySelectFields
-                }
-              }
-            }
-          }
-        }
-      }
+      where: { id },
     });
 
+    if (!findStd) return next(new ErrorHandler("No Standard Found", 404));
+
+    const getStdDetails = await prisma.standard.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        StdName: true,
+        // count students under each section
+        sections: {
+          select: {
+            SecName: true,
+            _count: {
+              select: { students: true },
+            },
+            classTeacher: {
+              select: {
+                teacher: {
+                  select: {
+                    id: true,
+                    username: true,
+                    firstname: true,
+                    lastname: true,
+                    qualification: true,
+                    experience: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        subjects: {
+          select: {
+            id: true,
+            name: true,
+            teacher: {
+              select: {
+                teacher: {
+                  select: {
+                    id: true,
+                    username: true,
+                    firstname: true,
+                    lastname: true,
+                    qualification: true,
+                    experience: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const totalStudents = getStdDetails.sections.reduce(
+      (acc, sec) => acc + sec._count.students,
+      0
+    );
+
+    /*
+    Used .reduce() --> reduce() is an array method used to combine all items of an array into a single value. Here in the above case we have "array of sections" in each section has the number of students --> _count.students. So we want one final number which id total students --> 
+    For Example --> 20 + 15 + 10 = 45 , 
+      that's exactly what reduce is made for : 
+      acc = accumulator → it stores the ongoing result (starts from 0)
+
+    sec = current element of the array (each section)
+
+    acc + sec._count.students → we take the running sum and add the current section’s students.
+
+    Start from 0
+      Essentially: 0 + 20 → 20 → +15 → 35 → +10 → 45 → done
+      */
+
     res.status(200).json({
-      success: true, 
-      message : `Succesfully Fetched the Details for ${getStdDetails.StdName} standard, which has total ${getStdDetails.sections.length} sections and ${getStdDetails.subjects.length} total subjects`, 
-      Standard_Details : getStdDetails
-    })
+      success: true,
+      message: `Succesfully Fetched the Details for ${getStdDetails.StdName} standard, which has total ${getStdDetails.sections.length} sections and ${getStdDetails.subjects.length} total subjects and ${totalStudents} total Students`,
+      Standard_Details: getStdDetails,
+    });
   })
 );
 
@@ -142,34 +176,54 @@ standardRoute.get(
   "/all-standards",
   routeCache(80),
   TryCatch(async (req, res, next) => {
-  
     const allstds = await prisma.standard.findMany({
-      select:{
-        id : true,
-        StdName : true, 
-        subjects:{
-         select:{
-          name: true,
-         }
-        },
-        sections:{
-          select:{
-            SecName : true, 
-            classTeacher:{
-              select:{
-                teacher:{
+      select: {
+        id: true,
+        StdName: true,
+        // count students under each section
+        sections: {
+          select: {
+            SecName: true,
+            _count: {
+              select: { students: true },
+            },
+            classTeacher: {
+              select: {
+                teacher: {
                   select: {
-                    id: true, 
-                    firstname : true, 
-                    lastname: true, 
-                    qualification: true,  
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                    id: true,
+                    username: true,
+                    firstname: true,
+                    lastname: true,
+                    qualification: true,
+                    experience: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        subjects: {
+          select: {
+            id: true,
+            name: true,
+            teacher: {
+              select: {
+                teacher: {
+                  select: {
+                    id: true,
+                    username: true,
+                    firstname: true,
+                    lastname: true,
+                    qualification: true,
+                    experience: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (allstds.length === 0) {

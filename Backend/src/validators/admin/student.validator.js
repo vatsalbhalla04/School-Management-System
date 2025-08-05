@@ -9,8 +9,6 @@
         .string()
         .min(3, { error: "Username must be at least 3 characters." }),
 
-    sectionId: z.number({ invalid_type_error: "Section ID is required." }),
-
     state: z
         .string()
         .min(3, { error: "State must be at least 3 characters long" })
