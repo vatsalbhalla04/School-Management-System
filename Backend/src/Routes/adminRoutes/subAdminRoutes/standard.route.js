@@ -1,13 +1,11 @@
 import pkg from "@prisma/client";
 import { Router } from "express";
+import { STANDARD_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
 import { TryCatch } from "../../../middleware/error.js";
+import routeCache from "../../../middleware/routeCache.js";
+import clearCache from "../../../utils/cacheUtils.js";
 import ErrorHandler from "../../../utils/utility.js";
 import stdValidations from "../../../validators/admin/standard.validator.js";
-import routeCache from "../../../middleware/routeCache.js";
-import { facultySelectFields } from "../../../constants/admin/teacher.prisma.js";
-import clearCache from "../../../utils/cacheUtils.js";
-import { STANDARD_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
-import { tr } from "zod/locales";
 
 const standardRoute = Router();
 
