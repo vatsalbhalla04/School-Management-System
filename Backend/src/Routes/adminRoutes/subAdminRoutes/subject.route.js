@@ -1,14 +1,15 @@
 import pkg from "@prisma/client";
 import { Router } from "express";
-import { TryCatch } from "../../../middleware/error.js";
-import ErrorHandler from "../../../utils/utility.js";
-import subjectRouteValidations from "../../../validators/admin/subject.validator.js";
+import { success } from "zod";
+import { SUBJECT_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
 import {
   facultySelectFields,
 } from "../../../constants/admin/teacher.prisma.js";
+import { TryCatch } from "../../../middleware/error.js";
 import routeCache from "../../../middleware/routeCache.js";
 import clearCache from "../../../utils/cacheUtils.js";
-import { SUBJECT_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
+import ErrorHandler from "../../../utils/utility.js";
+import subjectRouteValidations from "../../../validators/admin/subject.validator.js";
 
 const { PrismaClient } = pkg;
 
@@ -20,8 +21,12 @@ subjectRoute.post(
   "/add-subject",
   TryCatch(async (req, res, next) => {
     const result = subjectRouteValidations.safeParse(req.body);
-    if (!result.success)
-      return next(new ErrorHandler("Validations Failed", 4040));
+    if (!result.success){
+      return res.status(404).json({
+        success : false, 
+        error : result.error.issues,
+      })
+    }
 
     const { SubjectName, teacherUsername, StdName } = result.data;
 
@@ -57,7 +62,7 @@ subjectRoute.post(
 
       if(alreadyAssigned)  return next(
         new ErrorHandler(
-          `Faculty ${subjectTeacher} is already assigned to Standard ${standard.StdName}`
+          `Faculty ${teacher.firstname} ${teacher.lastname} is already assigned to Standard ${standard.StdName}`
         )
       );
     }
@@ -110,7 +115,7 @@ subjectRoute.post(
 
     res.status(200).json({
       success: true,
-      message: `Subject ${SubjectName} created successfully under standard ${standard.StdName} and assigned to ${teacherUsername ? `whose assigned subject Teacher is ${subjectTeacher}`:""}`,
+      message: `Subject ${SubjectName} created successfully`,
       addSubject,
     });
   })
@@ -251,7 +256,7 @@ subjectRoute.delete(
 );
 
 subjectRoute.get(
-  "/subject-details", routeCache(80),
+  "/subject-details", routeCache(160),
   TryCatch(async (req, res, next) => {
 
     const id = Number(req.query.id);
@@ -297,7 +302,7 @@ subjectRoute.get(
 );
 
 subjectRoute.get(
-  "/all-subjects",routeCache(80),
+  "/all-subjects",routeCache(160),
   TryCatch(async (req, res, next) => {
     const page = Number(req.query.page) || 1; 
     const limit = 5; 

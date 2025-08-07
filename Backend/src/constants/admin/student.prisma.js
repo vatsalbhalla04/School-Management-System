@@ -14,6 +14,8 @@ const StuFields = [
     "emergencyName",
     "emergencyPhone",
     "emergencyRelation",
+    "SecName",
+    "StdName"
 ];
 
 const StuSelectFields = {

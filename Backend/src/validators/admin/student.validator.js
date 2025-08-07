@@ -14,6 +14,10 @@ z.object({
         .string()
         .min(3, { error: "State must be at least 3 characters long" })
         .max(20, { error: "State must not exceed 20 characters" }),
+    
+    SecName : z.string().optional(),
+
+    StdName : z.string().optional(),
 
     phoneNumber: z
         .string()
@@ -72,6 +76,7 @@ z.object({
         .max(20, { error: "Relation must be between 3 and 20 characters long." })
         .optional(),
 });
+
 
 const UpdateStudent= 
     z.object({

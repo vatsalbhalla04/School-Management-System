@@ -83,7 +83,7 @@ standardRoute.delete(
 
 standardRoute.get(
   "/standard-details",
-  routeCache(80),
+  routeCache(160),
   TryCatch(async (req, res, next) => {
     const id = Number(req.query.id);
 
@@ -173,7 +173,7 @@ standardRoute.get(
 
 standardRoute.get(
   "/all-standards",
-  routeCache(80),
+  routeCache(160),
   TryCatch(async (req, res, next) => {
     const allstds = await prisma.standard.findMany({
       select: {

@@ -1,7 +1,6 @@
 import pkg from "@prisma/client";
 import { Router } from "express";
 import { SECTION_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
-import { facultySelectFields } from "../../../constants/admin/teacher.prisma.js";
 import { TryCatch } from "../../../middleware/error.js";
 import routeCache from "../../../middleware/routeCache.js";
 import clearCache from "../../../utils/cacheUtils.js";
@@ -13,7 +12,6 @@ import {
 
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
-
 
 const sectionRoute = Router();
 
@@ -274,7 +272,7 @@ sectionRoute.delete(
 
 sectionRoute.get(
   "/section-detail",
-  routeCache(80),
+  routeCache(160),
   TryCatch(async (req, res, next) => {
 
     const id = Number(req.query.id); 
@@ -354,7 +352,7 @@ sectionRoute.get(
 
 sectionRoute.get(
   "/all-sections",
-  routeCache(80),
+  routeCache(160),
   TryCatch(async (req, res) => {
     const page = Number(req.query.page) || 1; 
     const limit = 5; 

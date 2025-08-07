@@ -72,8 +72,8 @@ model Student {
   id                  String   @id @default(cuid())
   studentId           Int      @unique
   student             User     @relation(fields: [studentId], references: [id])
-  sectionId           Int
-  section             Section  @relation(fields: [sectionId], references: [id])
+  sectionId           Int?
+  section             Section?  @relation(fields: [sectionId], references: [id])
   mark                Mark[]
 
   @@index([sectionId])

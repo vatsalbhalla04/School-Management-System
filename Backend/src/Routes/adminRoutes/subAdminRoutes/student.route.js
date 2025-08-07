@@ -19,8 +19,127 @@ const { PrismaClient } = pkg;
 
 const prisma = new PrismaClient();
 
+// To Add A student while creating it , from the drop-down menu of Std and Section:
 studentRoute.post(
-  "/addStudent",
+  "/add-Stu-DropDownMenu",
+  TryCatch(async (req, res, next) => {
+    const result = AddStu.safeParse(req.body); 
+
+    if(!result.success){
+      return res.status(404).json({
+        success : false, 
+        errors : result.error.issues
+      })
+    }; 
+
+    const formData = Object.fromEntries(
+      StuFields.map((s)=>[s,result.data[s]])
+    );
+
+    const {username,password,StdName,SecName,...rest} = formData; 
+
+    const existingUser = await prisma.user.findUnique({ where : {username} }); 
+
+    if(existingUser){
+      return res.status(409).json({
+        success : false,
+        message : "User Already Exists"
+      }); 
+    }
+
+    const hashedPassword = await hashPassword(password); 
+
+    let section;
+
+    if(StdName && SecName){
+      section = await prisma.section.findFirst({
+        where:{
+          SecName,
+          standard:{
+            StdName
+          }
+        },
+        select:{
+          id : true,
+          SecName: true,
+          standard:{
+            select:{StdName: true}
+          }
+        }
+      });
+
+      if(!section) return next(new ErrorHandler(`No section found for Std: ${StdName} and SecName : ${SecName}`,404)); 
+    }
+
+    // Now create the user: 
+    const createdUser = await prisma.user.create({
+      data:{
+        ...rest,
+        username, 
+        password: hashedPassword,
+        role: "STUDENT",
+      }
+    }); 
+
+    // create the Student record : 
+    try {
+      const stuRecord = await prisma.student.create({
+        data: {
+          studentId: createdUser.id,
+          ...(section && {
+            sectionId : section.id
+          }) // only if the section exists
+        },
+        select:{
+          student:{
+              select:{
+                id: true,
+                firstname: true,
+                lastname : true,
+                username: true
+              }
+          },
+          section:{
+            select: {
+              id: true,
+              SecName: true,
+              standard:{
+                select:{
+                  id: true,
+                  StdName: true
+                }
+              }
+            }
+          }
+        }
+      }); 
+
+      const response = {
+        success : true,
+        message : `Student ${stuRecord.student.firstname} ${stuRecord.student.lastname} added`,
+        Student : stuRecord
+      }; 
+
+      if(stuRecord.section){
+        response.message += `and enrolled in ${stuRecord.section.standard.StdName}-${stuRecord.section.SecName}`
+      }; 
+
+      res.status(200).json(response); 
+
+    } catch (error) {
+      if(error.code === "P2002"){
+        return res.status(409).json({
+          success: true,
+          message : "Student already enrolled in this section"
+        })
+      }
+    }
+  })
+);
+
+// Add A Student , directly in the Section with the Help of sectionId --> req.query.sectionId
+studentRoute.post(
+  "/add-Student",
   TryCatch(async (req, res, next) => {
     const sectionId = Number(req.query.sectionId);
 
@@ -50,7 +169,7 @@ studentRoute.post(
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: "Username already exists.",
+        message: "User already exists.",
       });
     }
 
@@ -176,7 +295,74 @@ studentRoute.put(
   })
 );
 
-// to delete a student from both the user's table record and sections's table.
+// Map/Add a Student , after it is created with help of userId & sectionId.
+studentRoute.put(
+  "/map-student-with-Section",
+  TryCatch(async (req, res, next) => {
+    const sectionId = Number(req.query.sectionId);
+    const userId = Number(req.query.userId);
+
+    const findStu = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!findStu) return next(new ErrorHandler("No Student Found", 404));
+
+    if (!sectionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Section id is required in query.",
+      });
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { studentId: userId },
+    });
+    
+
+    const mapStuWithSection = await prisma.section.update({
+      where: {
+        id: sectionId,
+      },
+      data: {
+        students: {
+          connect: {
+            id: student.id,
+          },
+        },
+      },
+      select: {
+        id: true,
+        students: {
+          select: {
+            student: {
+              select: {
+                id: true,
+                firstname: true,
+                lastname: true,
+                username: true,
+              },
+            },
+          },
+        },
+        SecName: true,
+        standard: {
+          select: {
+            id: true,
+            StdName: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Student ${findStu.firstname} ${findStu.lastname} Added in ${mapStuWithSection.standard.StdName}-${mapStuWithSection.SecName}`,
+      mapStuWithSection,
+    });
+  })
+);
+
 studentRoute.delete(
   "/delete-student",
   TryCatch(async (req, res, next) => {
@@ -201,9 +387,74 @@ studentRoute.delete(
   })
 );
 
+studentRoute.delete(
+  "/remove-a-student-from-section",
+  TryCatch(async (req, res, next) => {
+    const userId = Number(req.query.userId);
+
+    const findStu = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!findStu) return next(new ErrorHandler("Student Not Found", 404));
+
+    const removeStu = await prisma.student.update({
+      where: {
+        studentId: userId,
+      },
+      data: {
+        sectionId: null,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Student ${findStu.firstname} ${findStu.lastname} removed from Section`,
+      removeStu,
+    });
+  })
+);
+
+studentRoute.delete(
+  "/remove-all-students-from-section",
+  TryCatch(async (req, res, next) => {
+    const sectionId = Number(req.query.sectionId); 
+
+    const section = await prisma.section.findUnique({
+      where :{
+        id : sectionId
+      },
+      select: {
+        SecName: true,
+        standard: {
+          select: {
+            StdName: true,
+          },
+        },
+      },
+    }); 
+
+    if(!section) return next(new ErrorHandler("Section Not Found",404)); 
+
+   const removeAllStu = await prisma.student.updateMany({
+    where:{
+      sectionId : sectionId
+    },
+    data :{
+      sectionId : null
+    }
+   })
+   
+    res.status(200).json({
+      success : true,
+      message : `Total ${removeAllStu.count} stundets have been removed from ${section.standard.StdName}-${section.SecName}`
+    })  
+  })
+);
+
 studentRoute.get(
   "/all-students",
-  routeCache(80),
+  routeCache(160),
   TryCatch(async (req, res, next) => {
     const page = Number(req.query.page) || 1;
     const limit = 7;
@@ -216,6 +467,7 @@ studentRoute.get(
       take: limit,
       where: { role: "STUDENT" },
       select: {
+        id: true,
         firstname: true,
         lastname: true,
         phoneNumber: true,
@@ -224,19 +476,22 @@ studentRoute.get(
           select: {
             section: {
               select: {
+                id: true,
                 SecName: true,
-                classTeacher:{
-                    select:{
-                      teacher:{
-                        select:{
-                          firstname: true,
-                          lastname: true,
-                        }
-                      }
-                    }
+                classTeacher: {
+                  select: {
+                    teacher: {
+                      select: {
+                        id: true,
+                        firstname: true,
+                        lastname: true,
+                      },
+                    },
+                  },
                 },
                 standard: {
                   select: {
+                    id: true,
                     StdName: true,
                     subjects: {
                       select: {
@@ -264,7 +519,7 @@ studentRoute.get(
 
 studentRoute.get(
   "/student-details",
-  routeCache(80),
+  routeCache(160),
   TryCatch(async (req, res, next) => {
     const userId = Number(req.query.userId);
 
@@ -282,6 +537,7 @@ studentRoute.get(
           select: {
             section: {
               select: {
+                id: true,
                 SecName: true,
                 classTeacher: {
                   select: {
@@ -300,24 +556,25 @@ studentRoute.get(
                 },
                 standard: {
                   select: {
+                    id: true,
                     StdName: true,
                     subjects: {
                       select: {
                         name: true,
                         teacher: {
-                         select:{
-                          teacher:{
-                            select: {
-                              id: true,
-                              firstname: true,
-                              lastname: true,
-                              email: true,
-                              qualification: true,
-                              experience: true,
-                              phoneNumber: true,
+                          select: {
+                            teacher: {
+                              select: {
+                                id: true,
+                                firstname: true,
+                                lastname: true,
+                                email: true,
+                                qualification: true,
+                                experience: true,
+                                phoneNumber: true,
+                              },
                             },
-                          }
-                         }
+                          },
                         },
                       },
                     },
