@@ -65,8 +65,10 @@ model User {
 
   student             Student?
   teacher             Teacher?
-}
 
+  @@index([id, role]) 
+
+}
 
 model Student {
   id                  String   @id @default(cuid())
@@ -78,6 +80,7 @@ model Student {
 
   @@index([sectionId])
   @@unique([studentId,sectionId])
+  @@index([studentId, sectionId]) 
 
 }
 
@@ -88,6 +91,8 @@ model Teacher {
   classSections       Section[]  @relation("Section_classTeacher")
   subjects            Subject[]
   assignments         SubjectAssignment[] // New: link to Subject + Section
+
+  @@index([teacherId])
 }
 
 model Section {
@@ -126,6 +131,7 @@ model Subject {
 
   @@index([standardId])
   @@index([teacherId])
+  @@index([standardId, teacherId]) 
 
 }
 

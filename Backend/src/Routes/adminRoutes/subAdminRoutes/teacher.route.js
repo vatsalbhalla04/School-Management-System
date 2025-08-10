@@ -14,7 +14,7 @@ import {
   updateTeacherSchema,
 } from "../../../validators/admin/teacher.validator.js";
 import clearCache from "../../../utils/cacheUtils.js";
-import { FACULTY_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
+import { ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
 
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
@@ -51,7 +51,7 @@ teacherRoute.post(
         message: "User with given username or email already exists.",
       });
     }
-    
+
     const hashedPassword = await hashPassword(password);
 
     const teacherUser = await prisma.user.create({
@@ -71,8 +71,9 @@ teacherRoute.post(
       },
     });
 
-    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE);
-    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_CACHE);
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU); 
 
     res.status(200).json({
       success: true,
@@ -153,8 +154,9 @@ teacherRoute.post(
     const created = usersData.filter(Boolean); // remove nulls
 
     if (created.length > 0) {
-      clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE);
-      clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
+      clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_CACHE);
+      clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
+      clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU)
     }
 
     res.status(207).json({
@@ -226,8 +228,9 @@ teacherRoute.put(
       select: { ...facultySelectFields },
     });
 
-    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE, id);
-    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE, id);
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_CACHE,{id});
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE,{id});
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU,{id});
 
     res.status(200).json({
       success: true,
@@ -264,8 +267,9 @@ teacherRoute.delete(
       },
     });
 
-    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE, id);
-    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE, id);
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_CACHE,{id});
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE,{id});
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU,{id});
 
     res.status(200).json({
       success: true,
@@ -281,8 +285,9 @@ teacherRoute.delete(
       where: { role: "TEACHER" },
     });
 
-    clearCache(FACULTY_CACHE_KEYS.FACULTY_CACHE);
-    clearCache(FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_CACHE,{page});
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE,{page});
+    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU,{page});
 
     return res.status(200).json({
       success: true,
@@ -293,7 +298,7 @@ teacherRoute.delete(
 
 teacherRoute.get(
   "/faculty-details",
-  routeCache(80),
+  routeCache(),
   TryCatch(async (req, res, next) => {
     const id = Number(req.query.id);
 
@@ -351,7 +356,7 @@ teacherRoute.get(
 
 teacherRoute.get(
   "/all-faculties",
-  routeCache(80),
+  routeCache(),
   TryCatch(async (req, res, next) => {
     const page = Number(req.query.page) || 1;
     const limit = 8;
@@ -413,4 +418,32 @@ teacherRoute.get(
   })
 );
 
+teacherRoute.get(
+  "/DropDownTeacher",
+  routeCache(),
+  TryCatch(async (req, res, next) => {
+
+    const Teacher_count = await prisma.user.count({
+      where :{role : "TEACHER"}
+    });
+
+    const getTeacherNames = await prisma.user.findMany({
+      where : {
+        role: "TEACHER"
+      }, 
+      select:{
+        id : true,
+        username : true,
+        firstname : true,
+        lastname: true
+      }
+    }); 
+
+    res.status(200).json({
+      success : true,
+      Total_teachers : Teacher_count,
+      Details : getTeacherNames
+    })
+  })
+);
 export default teacherRoute;

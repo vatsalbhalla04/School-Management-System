@@ -6,4 +6,3 @@ export function beautifyPrismaError(message) {
       .replace(/Available options are marked with \?/g, " Available fields:")
       .replace(/\\n/g, "\n");
   }
-  

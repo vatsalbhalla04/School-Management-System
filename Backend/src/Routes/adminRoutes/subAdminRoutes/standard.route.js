@@ -33,6 +33,7 @@ standardRoute.post(
 
     clearCache(STANDARD_CACHE_KEYS.STANDARD_CACHE);
     clearCache(STANDARD_CACHE_KEYS.ALL_STANDARD_CACHE);
+    clearCache(STANDARD_CACHE_KEYS.STD_DROP_DOWN);
 
     res.status(200).json({
       success: true,
@@ -71,8 +72,9 @@ standardRoute.delete(
       },
     });
 
-    clearCache(STANDARD_CACHE_KEYS.STANDARD_CACHE, id);
-    clearCache(STANDARD_CACHE_KEYS.ALL_STANDARD_CACHE);
+    clearCache(STANDARD_CACHE_KEYS.STANDARD_CACHE,{id});
+    clearCache(STANDARD_CACHE_KEYS.ALL_STANDARD_CACHE,{id});
+    clearCache(STANDARD_CACHE_KEYS.STD_DROP_DOWN,{id});
 
     res.status(200).json({
       success: true,
@@ -144,6 +146,7 @@ standardRoute.get(
         },
       },
     });
+    
     const totalStudents = getStdDetails.sections.reduce(
       (acc, sec) => acc + sec._count.students,
       0
@@ -168,6 +171,28 @@ standardRoute.get(
       message: `Succesfully Fetched the Details for ${getStdDetails.StdName} standard, which has total ${getStdDetails.sections.length} sections and ${getStdDetails.subjects.length} total subjects and ${totalStudents} total Students`,
       Standard_Details: getStdDetails,
     });
+  })
+);
+
+standardRoute.get(
+  "/DropDownStd",
+  routeCache(),
+  TryCatch(async (req, res, next) => {
+    const std = await prisma.standard.findMany({
+      select:{
+        id : true,
+        StdName : true,
+        sections:{
+           select:{
+            id : true,
+            SecName : true,
+           }
+        }
+      }
+    }); 
+    res.status(200).json({
+      Standard : std
+    })
   })
 );
 

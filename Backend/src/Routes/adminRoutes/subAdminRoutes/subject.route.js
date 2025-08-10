@@ -1,7 +1,7 @@
 import pkg from "@prisma/client";
 import { Router } from "express";
 import { success } from "zod";
-import { SUBJECT_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
+import { ADMIN_BASE_ROUTE, SUBJECT_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
 import {
   facultySelectFields,
 } from "../../../constants/admin/teacher.prisma.js";
@@ -110,8 +110,8 @@ subjectRoute.post(
       },
     });
 
-    clearCache(SUBJECT_CACHE_KEYS.SUBJECT_CACHE); 
-    clearCache(SUBJECT_CACHE_KEYS.ALL_SUBJECTS_CACHE); 
+    clearCache(ADMIN_BASE_ROUTE,SUBJECT_CACHE_KEYS.SUBJECT_CACHE); 
+    clearCache(ADMIN_BASE_ROUTE,SUBJECT_CACHE_KEYS.ALL_SUBJECTS_CACHE); 
 
     res.status(200).json({
       success: true,
@@ -124,11 +124,16 @@ subjectRoute.post(
 subjectRoute.put(
   "/update-subject-details",
   TryCatch(async (req, res, next) => {
-    const result = subjectRouteValidations.safeParse(req.body);
-    if (!result.success)
-      return next(new ErrorHandler("Validations Failed", 404));
-
     const id = Number(req.query.id);
+
+    const result = subjectRouteValidations.safeParse(req.body);
+    if (!result.success){
+      return res.status(404).json({
+        success : true,
+        error : result.error.issues
+      })
+    }
+
     const { newSubjectName, newStd, newFacultyAssigned } = result.data;
 
     const subject = await prisma.subject.findUnique({ where: { id } });
@@ -202,8 +207,8 @@ subjectRoute.put(
       },
     });
 
-    clearCache(SUBJECT_CACHE_KEYS.SUBJECT_CACHE,id); 
-    clearCache(SUBJECT_CACHE_KEYS.ALL_SUBJECTS_CACHE); 
+    clearCache(ADMIN_BASE_ROUTE,SUBJECT_CACHE_KEYS.SUBJECT_CACHE,{id}); 
+    clearCache(ADMIN_BASE_ROUTE,SUBJECT_CACHE_KEYS.ALL_SUBJECTS_CACHE,{id}); 
 
     res.status(200).json({
       success: true,
@@ -244,8 +249,8 @@ subjectRoute.delete(
       },
     });
 
-    clearCache(SUBJECT_CACHE_KEYS.SUBJECT_CACHE,id); 
-    clearCache(SUBJECT_CACHE_KEYS.ALL_SUBJECTS_CACHE); 
+    clearCache(ADMIN_BASE_ROUTE,SUBJECT_CACHE_KEYS.SUBJECT_CACHE,{id}); 
+    clearCache(ADMIN_BASE_ROUTE,SUBJECT_CACHE_KEYS.ALL_SUBJECTS_CACHE,{id}); 
 
     res.status(200).json({
       success: true,

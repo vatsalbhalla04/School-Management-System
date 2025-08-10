@@ -18,7 +18,7 @@ function routeCache(duration) { // higher order function
         // Cache hit for /api/v1/admin/all-faculties
       return res.send(cacheResponse);
     } else {
-      console.log(`Cache miss for ${key}`);
+      // console.log(`Cache miss for ${key}`);
       res.originalJson = res.json; // to store the response in json format. instead of res.send.
       res.json = (body) => {
         cache.set(key, body, duration);

@@ -1,6 +1,6 @@
 import pkg from "@prisma/client";
 import { Router } from "express";
-import { SECTION_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
+import { ADMIN_BASE_ROUTE, SECTION_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
 import { TryCatch } from "../../../middleware/error.js";
 import routeCache from "../../../middleware/routeCache.js";
 import clearCache from "../../../utils/cacheUtils.js";
@@ -89,8 +89,9 @@ sectionRoute.post(
       },
     });
 
-    clearCache(SECTION_CACHE_KEYS.SECTION_CACHE)
-    clearCache(SECTION_CACHE_KEYS.ALL_SECTION_CACHE)
+    clearCache(ADMIN_BASE_ROUTE,SECTION_CACHE_KEYS.SECTION_CACHE);
+    clearCache(ADMIN_BASE_ROUTE,SECTION_CACHE_KEYS.ALL_SECTION_CACHE);
+    clearCache(ADMIN_BASE_ROUTE,SECTION_CACHE_KEYS.SEC_DROP_DOWN);
 
     res.status(200).json({
       success: true,
@@ -106,12 +107,13 @@ sectionRoute.post(
 sectionRoute.put(
   "/update-section-details",
   TryCatch(async (req, res, next) => {
+    const id = Number(req.query.id);
+
     const result = updateSecValidations.safeParse(req.body);
 
     if (!result.success)
       return next(new ErrorHandler("Validations Failed", 404));
 
-    const id = Number(req.query.id);
 
     const { newSecName, newStdName, newClassTeacherUserName } = result.data;
 
@@ -203,8 +205,9 @@ sectionRoute.put(
       },
     });
 
-    clearCache(SECTION_CACHE_KEYS.SECTION_CACHE,id);
-    clearCache(SECTION_CACHE_KEYS.ALL_SECTION_CACHE);  
+    clearCache(ADMIN_BASE_ROUTE,SECTION_CACHE_KEYS.SECTION_CACHE,{id});
+    clearCache(ADMIN_BASE_ROUTE,SECTION_CACHE_KEYS.ALL_SECTION_CACHE,{id});
+    clearCache(ADMIN_BASE_ROUTE,SECTION_CACHE_KEYS.SEC_DROP_DOWN,{id});
 
     res.status(200).json({
       success: true,
@@ -259,8 +262,9 @@ sectionRoute.delete(
       },
     });
 
-    clearCache(SECTION_CACHE_KEYS.SECTION_CACHE,id);
-    clearCache(SECTION_CACHE_KEYS.ALL_SECTION_CACHE) 
+    clearCache(ADMIN_BASE_ROUTE,SECTION_CACHE_KEYS.SECTION_CACHE,{id});
+    clearCache(ADMIN_BASE_ROUTE,SECTION_CACHE_KEYS.ALL_SECTION_CACHE,{id});
+    clearCache(ADMIN_BASE_ROUTE,SECTION_CACHE_KEYS.SEC_DROP_DOWN,{id});
 
     res.status(200).json({
       success: true,
@@ -274,78 +278,98 @@ sectionRoute.get(
   "/section-detail",
   routeCache(160),
   TryCatch(async (req, res, next) => {
-
-    const id = Number(req.query.id); 
+    const id = Number(req.query.id);
 
     const section = await prisma.section.findUnique({
-      where :{
-          id
-      }
-    }); 
+      where: {
+        id,
+      },
+    });
 
-    if(!section) return next(new ErrorHandler("No Section Found",404)); 
+    if (!section) return next(new ErrorHandler("No Section Found", 404));
 
     const getDetails = await prisma.section.findUnique({
-      where:{id}, 
-      select:{
+      where: { id },
+      select: {
         id: true,
-        SecName : true, 
-        standard : {
-          select:{
+        SecName: true,
+        standard: {
+          select: {
             StdName: true,
-            subjects:{
-              select:{
+            subjects: {
+              select: {
                 name: true,
                 teacher: {
-                  select:{
-                    teacher:{
-                      select:{
-                        firstname: true, 
-                        lastname: true, 
-                        username: true, 
-                        qualification: true
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+                  select: {
+                    teacher: {
+                      select: {
+                        firstname: true,
+                        lastname: true,
+                        username: true,
+                        qualification: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         students: {
-          select:{
-             student:{
-              select:{
-                id: true, 
-                firstname : true, 
+          select: {
+            student: {
+              select: {
+                id: true,
+                firstname: true,
                 lastname: true,
-                username: true, 
-                phoneNumber: true
-              }
-             }
-          }
-        },
-        classTeacher:{
-          select:{
-             teacher:{
-              select:{
-                id : true,
                 username: true,
-                 firstname: true, 
-                 lastname : true, 
-                 qualification : true, 
-                 phoneNumber: true,
-              }
-             }
-          }
-        },  
-      }
-    }); 
+                phoneNumber: true,
+              },
+            },
+          },
+        },
+        classTeacher: {
+          select: {
+            teacher: {
+              select: {
+                id: true,
+                username: true,
+                firstname: true,
+                lastname: true,
+                qualification: true,
+                phoneNumber: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
     res.status(200).json({
-      success : true, 
+      success: true,
       message: `Section ${getDetails.SecName} (Std ${getDetails.standard.StdName}) —> Class Teacher: ${getDetails.classTeacher.teacher.firstname} ${getDetails.classTeacher.teacher.lastname}, Total Students: ${getDetails.students.length} and Total Subject: ${getDetails.standard.subjects.length}`,
-      Section_Details : getDetails
+      Section_Details: getDetails,
+    });
+  })
+);
+
+sectionRoute.get(
+  "/DropDownSection",
+  routeCache(),
+  TryCatch(async (req, res, next) => {
+    const sec = await prisma.section.findMany({
+      select :{
+        id : true,
+        SecName : true,
+        standard:{
+          select:{
+            id : true,
+          }
+        }
+      }
+    }); 
+    res.status(200).json({
+      Section : sec
     })
   })
 );
@@ -354,21 +378,21 @@ sectionRoute.get(
   "/all-sections",
   routeCache(160),
   TryCatch(async (req, res) => {
-    const page = Number(req.query.page) || 1; 
-    const limit = 5; 
-    const skip = (page - 1) *limit;
-    
-    const totalSec = await prisma.section.count({}); 
+    const page = Number(req.query.page) || 1;
+    const limit = 5;
+    const skip = (page - 1) * limit;
+
+    const totalSec = await prisma.section.count({});
 
     const allSections = await prisma.section.findMany({
-      skip, 
-      take: limit, 
+      skip,
+      take: limit,
       select: {
         SecName: true,
-        _count:{
-          select:{
-            students: true
-          }
+        _count: {
+          select: {
+            students: true,
+          },
         },
         standard: {
           select: {
@@ -379,11 +403,11 @@ sectionRoute.get(
           select: {
             teacher: {
               select: {
-                id: true, 
-                firstname: true, 
-                lastname: true, 
-                username: true, 
-                qualification: true
+                id: true,
+                firstname: true,
+                lastname: true,
+                username: true,
+                qualification: true,
               },
             },
           },
@@ -401,9 +425,9 @@ sectionRoute.get(
     res.status(200).json({
       success: true,
       message: `Total Sections ${totalSec}`,
-      currentPage : page, 
-      totalPage: Math.ceil(totalSec/limit),
-      Section: allSections
+      currentPage: page,
+      totalPage: Math.ceil(totalSec / limit),
+      Section: allSections,
     });
   })
 );
