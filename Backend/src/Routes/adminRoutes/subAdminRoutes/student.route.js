@@ -24,7 +24,7 @@ const { PrismaClient } = pkg;
 
 const prisma = new PrismaClient();
 
-// To Add A student while creating it , from the drop-down menu of Std and Section:
+// To Add A student while creating it , from the drop-down menu of Std(optional) and Section(optional):
 studentRoute.post(
   "/add-Stu-DropDownMenu",
   TryCatch(async (req, res, next) => {
@@ -245,77 +245,7 @@ studentRoute.post(
   })
 );
 
-studentRoute.put(
-  "/updateStudent",
-  TryCatch(async (req, res, next) => {
-    const userId = Number(req.query.userId);
-
-    const result = UpdateStudent.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        errors: result.error.issues,
-      });
-    }
-
-    const {
-      firstname,
-      lastname,
-      city,
-      country,
-      emergencyName,
-      emergencyPhone,
-      emergencyRelation,
-      gender,
-      joiningDate,
-      phoneNumber,
-      state,
-      username,
-      street,
-      zipCode,
-    } = result.data;
-
-    const findStu = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!findStu) return next(new ErrorHandler("No Student Found", 404));
-
-    const updateStu = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        firstname,
-        lastname,
-        username,
-        city,
-        country,
-        emergencyName,
-        emergencyPhone,
-        emergencyRelation,
-        gender,
-        joiningDate,
-        phoneNumber,
-        state,
-        street,
-        zipCode,
-      },
-      select: StuSelectFields,
-    });
-
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {userId});
-
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {userId});
-
-    res.status(200).json({
-      success: true,
-      message: `Sucessfully Upated the Details of Student ${updateStu.firstname} ${updateStu.lastname}`,
-      Updated_Student_Detatils: updateStu,
-    });
-  })
-);
-
-// Map/Add a Student , after it is created with help of userId & sectionId.
+// Map/Add a Student in the section , after it is created with help of userId & sectionId.
 studentRoute.put(
   "/map-student-with-Section",
   TryCatch(async (req, res, next) => {
@@ -382,6 +312,76 @@ studentRoute.put(
       success: true,
       message: `Student ${findStu.firstname} ${findStu.lastname} Added in ${mapStuWithSection.standard.StdName}-${mapStuWithSection.SecName}`,
       mapStuWithSection,
+    });
+  })
+);
+
+studentRoute.put(
+  "/updateStudent",
+  TryCatch(async (req, res, next) => {
+    const userId = Number(req.query.userId);
+
+    const result = UpdateStudent.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: result.error.issues,
+      });
+    }
+
+    const {
+      firstname,
+      lastname,
+      city,
+      country,
+      emergencyName,
+      emergencyPhone,
+      emergencyRelation,
+      gender,
+      joiningDate,
+      phoneNumber,
+      state,
+      username,
+      street,
+      zipCode,
+    } = result.data;
+
+    const findStu = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!findStu) return next(new ErrorHandler("No Student Found", 404));
+
+    const updateStu = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        firstname,
+        lastname,
+        username,
+        city,
+        country,
+        emergencyName,
+        emergencyPhone,
+        emergencyRelation,
+        gender,
+        joiningDate,
+        phoneNumber,
+        state,
+        street,
+        zipCode,
+      },
+      select: StuSelectFields,
+    });
+
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {userId});
+
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {userId});
+
+    res.status(200).json({
+      success: true,
+      message: `Sucessfully Upated the Details of Student ${updateStu.firstname} ${updateStu.lastname}`,
+      Updated_Student_Detatils: updateStu,
     });
   })
 );
