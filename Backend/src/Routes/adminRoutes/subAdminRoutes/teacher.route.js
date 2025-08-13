@@ -298,7 +298,7 @@ teacherRoute.delete(
 
 teacherRoute.get(
   "/faculty-details",
-  routeCache(),
+  routeCache(30),
   TryCatch(async (req, res, next) => {
     const id = Number(req.query.id);
 
@@ -356,7 +356,7 @@ teacherRoute.get(
 
 teacherRoute.get(
   "/all-faculties",
-  routeCache(),
+  routeCache(30),
   TryCatch(async (req, res, next) => {
     const page = Number(req.query.page) || 1;
     const limit = 8;
@@ -420,7 +420,7 @@ teacherRoute.get(
 
 teacherRoute.get(
   "/DropDownTeacher",
-  routeCache(),
+  routeCache(30),
   TryCatch(async (req, res, next) => {
 
     const Teacher_count = await prisma.user.count({

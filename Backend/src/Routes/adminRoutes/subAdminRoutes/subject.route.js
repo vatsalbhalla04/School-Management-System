@@ -261,7 +261,7 @@ subjectRoute.delete(
 );
 
 subjectRoute.get(
-  "/subject-details", routeCache(160),
+  "/subject-details", routeCache(30),
   TryCatch(async (req, res, next) => {
 
     const id = Number(req.query.id);
@@ -307,7 +307,7 @@ subjectRoute.get(
 );
 
 subjectRoute.get(
-  "/all-subjects",routeCache(160),
+  "/all-subjects",routeCache(30),
   TryCatch(async (req, res, next) => {
     const page = Number(req.query.page) || 1; 
     const limit = 5; 

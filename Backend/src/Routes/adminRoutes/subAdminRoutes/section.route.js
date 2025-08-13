@@ -276,7 +276,7 @@ sectionRoute.delete(
 
 sectionRoute.get(
   "/section-detail",
-  routeCache(160),
+  routeCache(30),
   TryCatch(async (req, res, next) => {
     const id = Number(req.query.id);
 
@@ -355,7 +355,7 @@ sectionRoute.get(
 
 sectionRoute.get(
   "/DropDownSection",
-  routeCache(),
+  routeCache(30),
   TryCatch(async (req, res, next) => {
     const sec = await prisma.section.findMany({
       select :{
@@ -376,7 +376,7 @@ sectionRoute.get(
 
 sectionRoute.get(
   "/all-sections",
-  routeCache(160),
+  routeCache(30),
   TryCatch(async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = 5;

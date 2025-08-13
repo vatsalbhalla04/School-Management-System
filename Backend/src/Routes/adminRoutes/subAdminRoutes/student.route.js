@@ -489,7 +489,7 @@ studentRoute.delete(
 
 studentRoute.get(
   "/all-students",
-  routeCache(),
+  routeCache(30),
   TryCatch(async (req, res, next) => {
     const page = Number(req.query.page) || 1;
     const limit = 7;
@@ -554,7 +554,7 @@ studentRoute.get(
 
 studentRoute.get(
   "/student-details",
-  routeCache(),
+  routeCache(30),
   TryCatch(async (req, res, next) => {
     const userId = Number(req.query.userId);
 
