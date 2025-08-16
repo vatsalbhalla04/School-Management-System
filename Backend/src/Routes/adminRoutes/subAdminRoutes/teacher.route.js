@@ -379,13 +379,7 @@ teacherRoute.get(
       skip,
       take: limit,
       select: {
-        id: true,
-        firstname: true,
-        lastname: true,
-        qualification: true,
-        email: true,
-        username: true,
-        phoneNumber: true,
+        ...facultySelectFields,
         teacher: {
           select: {
             subjects: {

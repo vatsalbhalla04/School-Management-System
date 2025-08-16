@@ -223,8 +223,12 @@ studentRoute.post(
         },
       });
 
-      clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {sectionId});
-      clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {sectionId});
+      clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {
+        sectionId,
+      });
+      clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {
+        sectionId,
+      });
 
       return res.status(201).json({
         success: true,
@@ -304,9 +308,15 @@ studentRoute.put(
       },
     });
 
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {sectionId,userId});
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {
+      sectionId,
+      userId,
+    });
 
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {sectionId, userId});
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {
+      sectionId,
+      userId,
+    });
 
     res.status(200).json({
       success: true,
@@ -374,9 +384,11 @@ studentRoute.put(
       select: StuSelectFields,
     });
 
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {userId});
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, { userId });
 
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {userId});
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {
+      userId,
+    });
 
     res.status(200).json({
       success: true,
@@ -403,9 +415,11 @@ studentRoute.delete(
       prisma.user.delete({ where: { id: userId } }),
     ]);
 
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {userId});
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, { userId });
 
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {userId});
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {
+      userId,
+    });
 
     res.status(200).json({
       success: true,
@@ -434,9 +448,11 @@ studentRoute.delete(
       },
     });
 
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {userId});
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, { userId });
 
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {userId});
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {
+      userId,
+    });
 
     res.status(200).json({
       success: true,
@@ -476,9 +492,13 @@ studentRoute.delete(
       },
     });
 
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {sectionId});
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.STUDENT_CACHE, {
+      sectionId,
+    });
 
-    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {sectionId});
+    clearCache(ADMIN_BASE_ROUTE, STUDENT_CACHE_KEYS.ALL_STUDENT_CACHE, {
+      sectionId,
+    });
 
     res.status(200).json({
       success: true,
@@ -502,11 +522,7 @@ studentRoute.get(
       take: limit,
       where: { role: "STUDENT" },
       select: {
-        id: true,
-        firstname: true,
-        lastname: true,
-        phoneNumber: true,
-        emergencyPhone: true,
+        ...StuSelectFields,
         student: {
           select: {
             section: {
@@ -628,5 +644,62 @@ studentRoute.get(
     });
   })
 );
+
+// studentRoute.get(
+//   "/student-details",
+//   routeCache(30),
+//   TryCatch(async (req, res, next) => {
+    
+//     const userId = Number(req.query.userId); 
+
+//     const [stuBasr,sectionData] = await prisma.$transaction([
+
+//       // student basic info + sec ref : 
+//       prisma.user.findUnique({
+//           where:{id : userId}, 
+//           select:{
+//             ...StuSelectFields,
+//             student:{
+//               select:{
+//                 id: true,
+//                 section:{
+//                   select:{
+//                     id : true,
+//                     SecName : true,
+//                     standardId : true,
+//                     classTeacherId : true,
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//       }),
+
+//       prisma.section.findFirst({
+//         where:{students : {some : {studentI:userId}
+//         }}, 
+//         select:{
+//           id : true,
+//           SecName : true,
+//           standard :{
+//             select :{
+//               id: true,
+//               StdName : true,
+//               subjects : {
+//                 select :{
+//                   id : true,
+//                   name : true,
+//                   teacherId : true,
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       }),
+
+
+//     ])
+//   })
+// );
 
 export default studentRoute;
