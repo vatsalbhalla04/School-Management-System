@@ -30,10 +30,10 @@ subjectRoute.post(
       })
     }
 
-    const { SubjectName, teacherUsername} = result.data;
+    const { SubjectName, teacherUsername,StdName} = result.data;
 
     const standard = await prisma.standard.findUnique({
-      where: {id : stdId},
+      where: {StdName},
     });
 
     if (!standard) return next(new ErrorHandler("Standard Not Found ", 404));
@@ -118,7 +118,7 @@ subjectRoute.post(
 
     res.status(200).json({
       success: true,
-      message: `Subject ${SubjectName} created successfully`,
+      message: `Subject ${SubjectName} created successfully under ${StdName}`,
       addSubject,
     });
   })

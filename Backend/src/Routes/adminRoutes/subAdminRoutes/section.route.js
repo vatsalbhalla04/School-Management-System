@@ -385,6 +385,8 @@ sectionRoute.get(
     const totalSec = await prisma.section.count({});
 
     const allSections = await prisma.section.findMany({
+      // skip,
+      // take: limit,
       select: {
         SecName: true,
         _count: {
@@ -420,7 +422,7 @@ sectionRoute.get(
         data: [],
       });
     }
-
+    
     res.status(200).json({
       success: true,
       message: `Total Sections ${totalSec}`,

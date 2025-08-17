@@ -174,17 +174,34 @@ standardRoute.get(
   })
 );
 
+
+function toOrdinal(num) {
+  if (num === 1) return "1st";
+  if (num === 2) return "2nd";
+  if (num === 3) return "3rd";
+  if (num >= 4 && num <= 12) return `${num}th`;
+  return null; 
+}
+
 standardRoute.get(
   "/DropDownStd",
   routeCache(30),
   TryCatch(async (req, res, next) => {
-    const std = await prisma.standard.findMany({
+
+    let stdName = String(req.query.stdName).trim();
+
+    if (/^\d+$/.test(stdName)) {
+      const num = parseInt(stdName, 10);
+      stdName = toOrdinal(num);
+    }
+
+    const std = await prisma.standard.findUnique({
+      where: { StdName: String(stdName).trim() },
       select:{
         id : true,
         StdName : true,
         sections:{
            select:{
-            id : true,
             SecName : true,
            }
         }

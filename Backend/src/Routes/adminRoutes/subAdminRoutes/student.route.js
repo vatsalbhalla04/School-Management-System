@@ -22,7 +22,9 @@ const studentRoute = Router();
 
 const { PrismaClient } = pkg;
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log : ['query','info','warn','error'],
+});
 
 // To Add A student while creating it , from the drop-down menu of Std(optional) and Section(optional):
 studentRoute.post(
@@ -652,13 +654,14 @@ studentRoute.get(
     
 //     const userId = Number(req.query.userId); 
 
-//     const [stuBasr,sectionData] = await prisma.$transaction([
+//     const [stuBase,sectionData] = await prisma.$transaction([
 
-//       // student basic info + sec ref : 
+//       // student   basic info + sec ref : 
 //       prisma.user.findUnique({
 //           where:{id : userId}, 
 //           select:{
 //             ...StuSelectFields,
+//             role : true,
 //             student:{
 //               select:{
 //                 id: true,
@@ -676,11 +679,12 @@ studentRoute.get(
 //       }),
 
 //       prisma.section.findFirst({
-//         where:{students : {some : {studentI:userId}
+//         where:{students : {some : {studentId:userId}
 //         }}, 
 //         select:{
 //           id : true,
 //           SecName : true,
+//           classTeacherId : true,
 //           standard :{
 //             select :{
 //               id: true,
@@ -697,9 +701,54 @@ studentRoute.get(
 //         }
 //       }),
 
-
 //     ])
-//   })
-// );
+//     if (!stuBase) return next(new ErrorHandler("No Student Found",404)); 
 
-export default studentRoute;
+//     //Step - 2 : Collect all unique teacherIds
+//     const teacherIds = [sectionData?.classTeacherId,...sectionData?.standard.subjects.map((s)=>s.teacherId)].filter(Boolean); 
+
+//     // step - 3 : Fetch teachers (second small query, still in parallel)
+//     const teachers = await prisma.teacher.findMany({
+//       where : {id:{in:teacherIds}},
+//       select:{
+//         teacher:{
+//           select:{
+//             id : true,
+//             firstname: true,
+//             lastname: true,
+//             email: true,
+//             qualification: true,
+//             experience: true,
+//             phoneNumber: true,
+//           }
+//         }
+//       }
+//     }); 
+
+//     const stuDetails = {
+//         ...stuBase,
+//         student:{
+//           ...stuBase.student,
+//           section:{
+//             ...sectionData,
+//             classTeacher: teachers.find((t)=>t.teacher.id === sectionData.classTeacherId) || null,
+//             standard:{
+//               ...sectionData.standard,
+//               subjects : sectionData.standard.subjects.map((s)=>({
+//                 ...s,
+//                 teacher: teachers.find((t)=>t.teacher.id === s.teacherId) || null,
+//               })),
+//             }
+//           }
+//         }
+//     };
+
+//     res.status(200).json({
+//       success: true,
+//       message: `Fetched the Details for Student ${stuDetails.firstname} ${stuDetails.lastname}`,
+//       Student_Details: stuDetails,
+//     });
+//   })
+// )
+
+export default studentRoute
