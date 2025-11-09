@@ -14,7 +14,10 @@ import {
   updateTeacherSchema,
 } from "../../../validators/admin/teacher.validator.js";
 import clearCache from "../../../utils/cacheUtils.js";
-import { ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS } from "../../../constants/admin/cacheKeys.js";
+import {
+  ADMIN_BASE_ROUTE,
+  FACULTY_CACHE_KEYS,
+} from "../../../constants/admin/cacheKeys.js";
 
 const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
@@ -71,9 +74,9 @@ teacherRoute.post(
       },
     });
 
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_CACHE);
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU); 
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.FACULTY_CACHE);
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU);
 
     res.status(200).json({
       success: true,
@@ -154,9 +157,9 @@ teacherRoute.post(
     const created = usersData.filter(Boolean); // remove nulls
 
     if (created.length > 0) {
-      clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_CACHE);
-      clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
-      clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU)
+      clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.FACULTY_CACHE);
+      clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE);
+      clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU);
     }
 
     res.status(207).json({
@@ -228,9 +231,11 @@ teacherRoute.put(
       select: { ...facultySelectFields },
     });
 
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_CACHE,{id});
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE,{id});
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU,{id});
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.FACULTY_CACHE, { id });
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE, { id });
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU, {
+      id,
+    });
 
     res.status(200).json({
       success: true,
@@ -267,9 +272,11 @@ teacherRoute.delete(
       },
     });
 
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_CACHE,{id});
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE,{id});
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU,{id});
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.FACULTY_CACHE, { id });
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE, { id });
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU, {
+      id,
+    });
 
     res.status(200).json({
       success: true,
@@ -285,9 +292,13 @@ teacherRoute.delete(
       where: { role: "TEACHER" },
     });
 
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_CACHE,{page});
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE,{page});
-    clearCache(ADMIN_BASE_ROUTE,FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU,{page});
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.FACULTY_CACHE, { page });
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.ALL_FACULTY_CACHE, {
+      page,
+    });
+    clearCache(ADMIN_BASE_ROUTE, FACULTY_CACHE_KEYS.FACULTY_DROP_DOWN_MENU, {
+      page,
+    });
 
     return res.status(200).json({
       success: true,
@@ -374,33 +385,37 @@ teacherRoute.get(
       });
     }
 
-    const allFaultyDetails = await prisma.user.findMany({
-      where: { role: "TEACHER" },
-      skip,
-      take: limit,
-      select: {
-        ...facultySelectFields,
-        teacher: {
-          select: {
-            subjects: {
-              select: {
-                name: true,
-                standard: {
-                  select: {
-                    StdName: true,
-                    sections: {
-                      select: {
-                        SecName: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    const allFaultyDetails = await prisma.$queryRaw`
+    SELECT 
+    u.id,
+    u.firstname,
+    u.lastname,
+    u.username,
+    u.email,
+    u."phoneNumber",
+    COALESCE(u.qualification, 'Not Provided') AS qualification,
+    COALESCE(u."joiningDate", 'Not Provided') AS "joiningDate",
+    COALESCE(u.experience, 'Not Provided') AS experience,
+    COALESCE(u.street, 'Not Provided') AS street,
+    COALESCE(u.state, 'Not Provided') AS state,
+    COALESCE(u.city, 'Not Provided') AS city,
+    COALESCE(u."zipCode", 'Not Provided') AS "zipCode",
+    COALESCE(u.country, 'Not Provided') AS country,
+    COALESCE(u."emergencyName", 'Not Provided') AS "emergencyName",
+    u."emergencyPhone",
+    COALESCE(u."emergencyRelation", 'Not Provided') AS "emergencyRelation",
+    COALESCE(STRING_AGG(DISTINCT subj.name, ', '), 'No Subjects') AS subjects,
+    COALESCE(STRING_AGG(std."StdName" || ' ' || sec."SecName", ', '), 'No Classes') AS classes
+    FROM "User" u
+    JOIN "Teacher" t ON t."teacherId" = u.id
+    LEFT JOIN "Subject" subj ON subj."teacherId" = t.id
+    LEFT JOIN "Standard" std ON std.id = subj."standardId"
+    LEFT JOIN "Section" sec ON sec."standardId" = std.id
+    WHERE u.role = 'TEACHER'
+    GROUP BY u.id
+    ORDER BY u.firstname ASC
+    LIMIT ${limit} OFFSET ${skip};
+    `;
 
     res.status(200).json({
       success: true,
@@ -416,28 +431,27 @@ teacherRoute.get(
   "/DropDownTeacher",
   routeCache(30),
   TryCatch(async (req, res, next) => {
-
     const Teacher_count = await prisma.user.count({
-      where :{role : "TEACHER"}
+      where: { role: "TEACHER" },
     });
 
     const getTeacherNames = await prisma.user.findMany({
-      where : {
-        role: "TEACHER"
-      }, 
-      select:{
-        id : true,
-        username : true,
-        firstname : true,
-        lastname: true
-      }
-    }); 
+      where: {
+        role: "TEACHER",
+      },
+      select: {
+        id: true,
+        username: true,
+        firstname: true,
+        lastname: true,
+      },
+    });
 
     res.status(200).json({
-      success : true,
-      Total_teachers : Teacher_count,
-      Details : getTeacherNames
-    })
+      success: true,
+      Total_teachers: Teacher_count,
+      Details: getTeacherNames,
+    });
   })
 );
 export default teacherRoute;
